@@ -4,11 +4,12 @@ import { For, JSX, createSignal, createEffect } from 'solid-js';
 
 import './InputStyle.css';
 
-export const [sheets, setSheets] = createStore<Sheet[]>([]);
 export const [currentSheet, setCurrentSheet] = createSignal<Sheet>();
+export const [sheets, setSheets] = createStore<Sheet[]>([]);
 export const [stuff, setStuff] = createSignal(false);
 
 createEffect(() => {
+	if (currentSheet() === undefined) return;
 	let new_sheet = sheets.filter((s) => s.uuid !== currentSheet().uuid);
 	setSheets([...new_sheet, currentSheet()]);
 })

@@ -1,7 +1,7 @@
 import { createEffect, createSignal } from 'solid-js';
 import { z } from 'zod';
 
-import { sheets, setSheets, setCurrentSheetUUID, setCurrentSheet, Sheet } from './stores/data';
+import { sheets, setSheets, setCurrentSheet, Sheet } from './stores/data';
 
 export function SheetCreator() {
 	const [sheetName, setSheetName] = createSignal('');
@@ -12,10 +12,11 @@ export function SheetCreator() {
 	});
 
 	const validateSheetName = (name: string) => {
+		// if (sheets === undefined || sheets.length === 1) return;
 		if (
 			sheets.find((s) => s.id === name) !== undefined ||
 			name.length === 0
-		) {
+			) {
 			setNameIsValid(false);
 			return;
 		}

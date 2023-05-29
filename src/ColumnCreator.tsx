@@ -76,7 +76,7 @@ export function ColumnCreator() {
 			accessorKey: NAME,
 			id: newUuid,
 			header: NAME,
-			cell: (info) => TypeData[TYPE].getInputField,
+			cell: (info) => info.getValue(),
 		};
 
 		sheet.columnDef.push(newColumnDef);
