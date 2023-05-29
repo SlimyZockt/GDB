@@ -1,7 +1,7 @@
 import { createEffect, createSignal } from 'solid-js';
 import { z } from 'zod';
 
-import { sheets, setSheet, setCurrentSheetUUID } from './stores/data';
+import { sheets, setSheets, setCurrentSheetUUID, setCurrentSheet, Sheet } from './stores/data';
 
 export function SheetCreator() {
 	const [sheetName, setSheetName] = createSignal('');
@@ -31,20 +31,18 @@ export function SheetCreator() {
 			uuid = crypto.randomUUID();
 		}
 
-		setCurrentSheetUUID(uuid);
-		setSheet((s) => [
-			...s,
-			{
-				uuid,
-				id: sheetName(),
-				rows: [],
-				columns: [],
-				columnDef: [],
-			},
-		]);
+		const NEW_SHEET: Sheet = {
+			uuid,
+			id: sheetName(),
+			rows: [],
+			columns: [],
+			columnDef: [],
+		};
+
+		// setSheets((s) => [...s, NEW_SHEET]);
+		setCurrentSheet(NEW_SHEET);
 
 		setSheetName('');
-		console.log(sheets);
 	};
 
 	return (
