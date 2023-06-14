@@ -2,6 +2,7 @@ import { For, JSX, Show, createEffect, createSignal, untrack } from 'solid-js';
 import {
 	Column,
 	DataTypes,
+	SettingsData,
 	TypeData,
 	currentSheet,
 	setCurrentSheet,
@@ -11,6 +12,7 @@ import {
 	stuff,
 } from './stores/data';
 import { ColumnDef } from '@tanstack/solid-table';
+import { Dynamic } from 'solid-js/web';
 
 export function ColumnCreator() {
 	const [columnName, setColumnName] = createSignal('');
@@ -20,26 +22,32 @@ export function ColumnCreator() {
 		keyof typeof TypeData
 	>;
 
-	const verifyName = (name: string) =>{
-		let sheet = currentSheet();
+	const verifyName = (name: string) => {
+		let sheet = currentSheet;
 
 		if (sheet === undefined) return false;
 		if (name.length === 0) return false;
-		if (name.endsWith(" ")) return false;
-		if (name.startsWith(" ")) return false;
+		if (name.endsWith(' ')) return false;
+		if (name.startsWith(' ')) return false;
 
 		return sheet.columns.find((c) => c.name === name) === undefined;
-	}
+	};
 
-	const getSettingJSX = (data: (typeof TypeData)[keyof typeof TypeData]) => {
-		if (!('getSettingsField' in data)) return;
-		if (data.getSettingsField === undefined) return;
+	const getSettingJSX = (props: {
+		data: (typeof TypeData)[keyof typeof TypeData];
+	}) => {
+		if (!('getSettingsField' in props.data)) return <div></div>;
+		if (props.data.getSettingsField === undefined) return <div></div>;
+		const test = (v: SettingsData) => {
+			console.table(v);
+		};
 		return (
 			<>
 				<h2 class="font-bold">Settings</h2>
 				<br />
-				{data.getSettingsField(
-					{
+				<Dynamic
+					component={props.data.getSettingsField}
+					settingData={{
 						max: {
 							active: false,
 							value: 0,
@@ -52,15 +60,15 @@ export function ColumnCreator() {
 							active: false,
 							value: 0,
 						},
-					},
-					(v) => console.table(v)
-				)}
+					}}
+					onSettingsChanged={test}
+				/>
 			</>
 		);
 	};
 
 	const createColumn = () => {
-		let sheet = untrack(currentSheet);
+		let sheet = currentSheet;
 
 		const NAME = untrack(columnName);
 		const TYPE = untrack(type);
@@ -72,26 +80,13 @@ export function ColumnCreator() {
 			newUuid = crypto.randomUUID();
 		}
 
-		const newColumnDef: ColumnDef<{ [key: string]: DataTypes }> = {
-			accessorKey: NAME,
-			id: newUuid,
-			header: NAME,
-			cell: (info) => info.getValue(),
-		};
-
-		sheet.columnDef.push(newColumnDef);
-
 		const newColumn: Column = {
 			uuid: newUuid,
 			name: NAME,
-			type: type(),
+			type: TYPE,
 		};
 
-		sheet.columns.push(newColumn);
-
-		// let new_sheet = sheets.filter((s) => s.uuid !== sheet?.uuid);
-		// setSheets([...new_sheet, sheet]);
-		setCurrentSheet(Object.assign({}, sheet));
+		setCurrentSheet('columns', (c) => [...c, newColumn]);
 		setColumnName('');
 	};
 
@@ -147,7 +142,12 @@ export function ColumnCreator() {
 						</select>
 					</label>
 					<br />
-					<div>{getSettingJSX(TypeData[type()])}</div>
+					<div>
+						<Dynamic
+							component={getSettingJSX}
+							data={TypeData[type()]}
+						/>
+					</div>
 					<br />
 					<button
 						class={`btn btn-primary ${
@@ -162,4 +162,3 @@ export function ColumnCreator() {
 		</>
 	);
 }
-

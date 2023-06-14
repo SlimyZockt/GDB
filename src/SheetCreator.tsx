@@ -1,7 +1,13 @@
-import { createEffect, createSignal } from 'solid-js';
+import { createEffect, createSignal, untrack } from 'solid-js';
 import { z } from 'zod';
 
-import { sheets, setSheets, setCurrentSheet, Sheet } from './stores/data';
+import {
+	sheets,
+	setSheets,
+	setCurrentSheet,
+	Sheet,
+	currentSheet,
+} from './stores/data';
 
 export function SheetCreator() {
 	const [sheetName, setSheetName] = createSignal('');
@@ -16,7 +22,7 @@ export function SheetCreator() {
 		if (
 			sheets.find((s) => s.id === name) !== undefined ||
 			name.length === 0
-			) {
+		) {
 			setNameIsValid(false);
 			return;
 		}
@@ -24,7 +30,8 @@ export function SheetCreator() {
 	};
 
 	const createSheet = () => {
-		if (sheets.find((s) => s.id === sheetName()) !== undefined) return;
+		const NAME = untrack(sheetName);
+		if (sheets.find((s) => s.id === NAME) !== undefined) return;
 
 		let uuid = crypto.randomUUID();
 
@@ -33,16 +40,26 @@ export function SheetCreator() {
 		}
 
 		const NEW_SHEET: Sheet = {
-			uuid,
-			id: sheetName(),
+			uuid: uuid,
+			id: NAME,
 			rows: [],
 			columns: [],
-			columnDef: [],
 		};
 
-		// setSheets((s) => [...s, NEW_SHEET]);
-		setCurrentSheet(NEW_SHEET);
+		setSheets((sheets) => {
+			let new_sheets = [...sheets, NEW_SHEET];
+			new_sheets = new_sheets.map((s) => {
+				return s.uuid === currentSheet.uuid
+					? JSON.parse(JSON.stringify(currentSheet))
+					: s;
+			});
 
+			return new_sheets;
+		});
+		// console.log(sheets);
+		// console.log(sheets);
+
+		setCurrentSheet(NEW_SHEET);
 		setSheetName('');
 	};
 
