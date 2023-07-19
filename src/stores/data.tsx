@@ -8,11 +8,13 @@ import {
 	untrack,
 	Accessor,
 	onMount,
+	Index,
 } from 'solid-js';
 
 import './InputStyle.css';
 import { Sheet } from '../Sheet';
 import { z } from 'zod';
+import { sign } from 'crypto';
 
 export const [currentSheet, setCurrentSheet] = createStore<Sheet>({
 	uuid: '',
@@ -22,26 +24,6 @@ export const [currentSheet, setCurrentSheet] = createStore<Sheet>({
 });
 export const [sheets, setSheets] = createStore<Sheet[]>([]);
 export const [stuff, setStuff] = createSignal(false);
-
-// Important! creates always a Side effect
-// createEffect(() => {
-// 	let sheet = currentSheet;
-// 	if (sheet === undefined) return;
-// 	let new_sheet = sheets.filter((s) => s.uuid !== (sheet as Sheet).uuid);
-// 	setSheets([...new_sheet, sheet]);
-// });
-
-// export type TypeSetting = {
-// 	readonly name: string;
-// 	readonly inputType: 'number' | 'text' | 'enum';
-// 	readonly active: boolean;
-// };
-
-// export type Settings = { [x in ColumnTypes]?: TypeSetting[] };
-
-// export type SettingsData = {
-// 	[x: string]: number | string | boolean | string[];
-// };
 
 type StringLiteral<T> = T extends string
 	? string extends T
@@ -60,8 +42,8 @@ type Type<
 		_valueType?: ValueType; // this is TS Hack,
 		_settingType?: SettingType; // this is TS Hack,
 		getSettingsField?: (props: {
-			settingData: SettingType;
-			onSettingsChanged?: (value: SettingType) => void;
+			settingData?: SettingType;
+			onSettingsChanged?: (value: SettingType | 'Error') => void;
 		}) => JSX.Element;
 		getInputField: (props: {
 			settings: SettingType | undefined;
@@ -112,8 +94,16 @@ export type SheetTypes = Type<string, 'Text', undefined> &
 	Type<{ r: number; g: number; b: number }, 'ColorRGB', undefined> &
 	Type<string, 'SheetReference', undefined> &
 	Type<string, 'LineReference', undefined> &
-	Type<string, 'ImagePath', undefined> &
-	Type<string, 'FilePath', undefined> &
+	Type<
+		string,
+		'FilePath',
+		{
+			Filenames: {
+				value: string[];
+				active: boolean;
+			};
+		}
+	> &
 	Type<Date, 'Date', undefined> &
 	Type<
 		string,
@@ -175,19 +165,7 @@ export const TypeData: SheetTypes = {
 					? {}
 					: unwrapSetting(props.settings);
 
-			let validator = z.number();
-			if ('step' in settings && settings.step !== undefined) {
-				validator = validator.step(settings.step);
-			}
-			if ('max' in settings && settings.max !== undefined) {
-				validator = validator.max(settings.max);
-			}
-			if ('min' in settings && settings.min !== undefined) {
-				validator = validator.min(settings.min);
-			}
-
-			const onNumberChange = (number: string) => {
-				validator.safeParse(number);
+			const onNumberChange = (number: number) => {
 				setCurrentSheet(
 					'rows',
 					props.row.id,
@@ -198,25 +176,24 @@ export const TypeData: SheetTypes = {
 			};
 
 			return (
-				<input
-					type="number"
-					placeholder="0"
-					class="input input-bordered min-w-full"
-					onInput={(e) => onNumberChange(e.currentTarget.value)}
-					value={initValue}
+				<NumberInput
+					onValueChanged={(v) => onNumberChange(v)}
+					value={initValue.toString()}
 					step="any"
+					isInt={false}
+					class="min-w-full"
 					{...settings}
 				/>
 			);
 		},
-		getSettingsField: getNumericSettings,
+		getSettingsField: getNumericSettings('Float'),
 	},
 	Int: {
-		getSettingsField: getNumericSettings,
+		getSettingsField: getNumericSettings('Int'),
 		getInputField: (props) => {
 			let initValue =
 				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[props.colUUID] as string)
+					? (props.row.data[props.colUUID] as number)
 					: 0;
 
 			let settings =
@@ -224,19 +201,7 @@ export const TypeData: SheetTypes = {
 					? {}
 					: unwrapSetting(props.settings);
 
-			let validator = z.number().int();
-			if ('step' in settings && settings.step !== undefined) {
-				validator = validator.step(settings.step);
-			}
-			if ('max' in settings && settings.max !== undefined) {
-				validator = validator.max(settings.max);
-			}
-			if ('min' in settings && settings.min !== undefined) {
-				validator = validator.min(settings.min);
-			}
-
-			const onNumberChange = (number: string) => {
-				validator.safeParse(number);
+			const onNumberChange = (number: number) => {
 				setCurrentSheet(
 					'rows',
 					props.row.id,
@@ -247,13 +212,12 @@ export const TypeData: SheetTypes = {
 			};
 
 			return (
-				<input
-					type="number"
-					placeholder="0"
-					class="input input-bordered min-w-full"
-					onInput={(e) => onNumberChange(e.currentTarget.value)}
-					value={initValue}
-					step={1}
+				<NumberInput
+					onValueChanged={(v) => onNumberChange(v)}
+					value={initValue.toString()}
+					step="any"
+					isInt={true}
+					class="min-w-full"
 					{...settings}
 				/>
 			);
@@ -354,18 +318,13 @@ export const TypeData: SheetTypes = {
 					? (props.row.data[props.colUUID] as Date)
 					: new Date(2023, 1, 1);
 
-			console.log(new Date(2023, 1, 1));
-			console.log(initValue);
-
 			const onDataChange = (date: Date | null) => {
-				console.log(date);
-
 				setCurrentSheet(
 					'rows',
 					props.row.id,
 					'data',
 					props.colUUID,
-					date === null ? undefined : date
+					date === null ? new Date(2023, 1, 1) : date
 				);
 			};
 
@@ -410,7 +369,7 @@ export const TypeData: SheetTypes = {
 					class="select select-bordered select-ghost min-w-full bg-base-200"
 					onInput={(v) => onEnumChange(v.currentTarget.value)}
 				>
-					<For each={settings?.possibleValues}>
+					<For each={settings.possibleValues}>
 						{(v) => (
 							<option selected={v === initValue}> {v} </option>
 						)}
@@ -418,9 +377,109 @@ export const TypeData: SheetTypes = {
 				</select>
 			);
 		},
+		getSettingsField(props) {
+			const [states, setStates] = createSignal(
+				props.settingData === undefined
+					? (['newEnum1'] as string[])
+					: props.settingData.possibleValues.value
+			);
+
+			const updateState = (newState: string, id: number) => {
+				setStates((v) => {
+					v[id] = newState;
+					return [...v];
+				});
+			};
+
+			const isValid = (states: string[]) => {
+				let counts: { [x: string]: number } = {};
+				for (const state of states) {
+					counts[state] = (counts[state] || 0) + 1;
+				}
+				for (const key in counts) {
+					if (counts[key] > 1) {
+						return false;
+					}
+				}
+				return true;
+			};
+
+			const isCurrentStateValid = (states: string[], state: string) =>
+				states.filter((s) => s === state).length > 1;
+
+			createEffect(() => {
+				if (props.onSettingsChanged === undefined) return;
+				props.onSettingsChanged(
+					isValid(states())
+						? {
+								possibleValues: {
+									value: states(),
+									active: true,
+								},
+						  }
+						: 'Error'
+				);
+			});
+
+			return (
+				<div>
+					<div class="border-base-content border-[1px] min-w-full bg-base-200 p-1 rounded-md">
+						<Index each={states()}>
+							{(value, i) => (
+								<label class="input-group p-1">
+									<input
+										type="text"
+										class={`input flex-1 ${
+											isCurrentStateValid(
+												states(),
+												value()
+											)
+												? 'input-error'
+												: ''
+										}`}
+										value={value()}
+										onInput={(e) =>
+											updateState(
+												e.currentTarget.value,
+												i
+											)
+										}
+									/>
+									<button
+										class="btn btn-error"
+										onClick={(_) =>
+											setStates((oldStates) =>
+												oldStates.filter(
+													(_, id) => id !== i
+												)
+											)
+										}
+									>
+										X
+									</button>
+								</label>
+							)}
+						</Index>
+					</div>
+					<button
+						class="btn min-w-full"
+						onClick={() =>
+							setStates((s) => [
+								...s,
+								`newEnum${states().length + 1}`,
+							])
+						}
+					>
+						Create New Value
+					</button>
+				</div>
+			);
+		},
 	},
 	FilePath: {
 		getInputField: (props) => {
+			// TODO: ADD Setting to Save Data
+
 			let initValue =
 				props.row.data[props.colUUID] !== undefined
 					? (props.row.data[
@@ -428,52 +487,135 @@ export const TypeData: SheetTypes = {
 					  ] as SheetTypes['FilePath']['_valueType'])
 					: '';
 
-			const onFileChange = (path: string) => {
+			const onFileChange = async (fileList: FileList | null) => {
+				// TODO: ADD Native File Path
+				let File = fileList?.item(0);
+				let url = ""
+				if (File !== undefined && File !== null) {
+					url = URL.createObjectURL(File);
+				};
 				setCurrentSheet(
 					'rows',
 					props.row.id,
 					'data',
 					props.colUUID,
-					path
+					url
 				);
 			};
+
+			let settings =
+				props.settings === undefined
+					? {}
+					: unwrapSetting(props.settings);
 
 			return (
 				<input
 					type="file"
-					class="input input-bordered min-w-full"
-					onInput={(e) => onFileChange(e.currentTarget.value)}
+					class="file-input file-input-bordered w-full min-w-full"
+					onInput={(e) => onFileChange(e.currentTarget.files)}
 					value={initValue}
+					accept={settings.Filenames?.join(',')}
 				/>
 			);
 		},
-	},
-	ImagePath: {
-		getInputField: (props) => {
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[
-							props.colUUID
-					  ] as SheetTypes['ImagePath']['_valueType'])
-					: '';
+		getSettingsField(props) {
+			const [states, setStates] = createSignal(
+				props.settingData === undefined
+					? ([] as string[])
+					: props.settingData.Filenames.value
+			);
 
-			const onFileChange = (path: string) => {
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					path
-				);
+			const updateState = (newState: string, id: number) => {
+				setStates((v) => {
+					v[id] = newState;
+					return [...v];
+				});
 			};
 
+			const isValid = (states: string[]) => {
+				let counts: { [x: string]: number } = {};
+				for (const state of states) {
+					counts[state] = (counts[state] || 0) + 1;
+				}
+				for (const key in counts) {
+					if (counts[key] > 1) {
+						return false;
+					}
+				}
+				return true;
+			};
+
+			const isCurrentStateValid = (states: string[], state: string) =>
+				states.filter((s) => s === state).length > 1;
+
+			createEffect(() => {
+				if (props.onSettingsChanged === undefined) return;
+				props.onSettingsChanged(
+					isValid(states())
+						? {
+								Filenames: {
+									value: states(),
+									active: true,
+								},
+						  }
+						: 'Error'
+				);
+			});
+
 			return (
-				<input
-					type="file"
-					class="input input-bordered min-w-full"
-					onInput={(e) => onFileChange(e.currentTarget.value)}
-					value={initValue}
-				/>
+				<div class="">
+					<h1 class="text-md font-bold">Allowed file extension: </h1>
+					<br />
+					<div class="min-w-full bg-base-200 p-1 rounded-md">
+						<Index each={states()}>
+							{(value, i) => (
+								<label class="input-group p-1">
+									<input
+										type="text"
+										class={`input flex-1 ${
+											isCurrentStateValid(
+												states(),
+												value()
+											)
+												? 'input-error'
+												: ''
+										}`}
+										value={value()}
+										onInput={(e) =>
+											updateState(
+												e.currentTarget.value,
+												i
+											)
+										}
+									/>
+									<button
+										class="btn btn-error"
+										onClick={(_) =>
+											setStates((oldStates) =>
+												oldStates.filter(
+													(_, id) => id !== i
+												)
+											)
+										}
+									>
+										X
+									</button>
+								</label>
+							)}
+						</Index>
+					</div>
+					<button
+						class="btn min-w-full"
+						onClick={() =>
+							setStates((s) => [
+								...s,
+								`newEnum${states().length + 1}`,
+							])
+						}
+					>
+						Create New Value
+					</button>
+				</div>
 			);
 		},
 	},
@@ -618,6 +760,7 @@ function NumberSettingInput(prop: {
 	label: string;
 	state?: { value: number; active: boolean };
 	onStateChanged?: (state: { value: number; active: boolean }) => {};
+	isInt: boolean;
 }) {
 	const [active, setActive] = createSignal(false);
 	const [value, setValue] = createSignal(0);
@@ -631,16 +774,18 @@ function NumberSettingInput(prop: {
 	return (
 		<label class="input-group">
 			<span>{prop.label}</span>
-			<input
-				type="number"
-				value={prop.state === undefined ? 0 : prop.state.value}
+
+			<NumberInput
+				onValueChanged={(v) => setValue(v)}
+				value={
+					prop.state === undefined ? '0' : prop.state.value.toString()
+				}
+				isInt={prop.isInt}
+				disabled={!active()}
 				class={`input input-bordered flex-1 bg-base-200 ${
 					!active() ? 'input-disabled text-base-content' : ''
 				}`}
-				disabled={!active()}
-				onInput={(v) => {
-					setValue(v.currentTarget.valueAsNumber);
-				}}
+				step="any"
 			/>
 			<span>
 				<input
@@ -658,108 +803,194 @@ function NumberSettingInput(prop: {
 	);
 }
 
-function getNumericSettings(props: {
-	settingData: {
-		max: {
-			active: boolean;
-			value: number;
+function getNumericSettings(type: 'Int' | 'Float') {
+	return (props: {
+		settingData?: {
+			max: {
+				active: boolean;
+				value: number;
+			};
+			min: {
+				active: boolean;
+				value: number;
+			};
+			step: {
+				active: boolean;
+				value: number;
+			};
 		};
-		min: {
-			active: boolean;
-			value: number;
-		};
-		step: {
-			active: boolean;
-			value: number;
-		};
+		onSettingsChanged?: (value: {
+			max: {
+				active: boolean;
+				value: number;
+			};
+			min: {
+				active: boolean;
+				value: number;
+			};
+			step: {
+				active: boolean;
+				value: number;
+			};
+		}) => void;
+	}): JSX.Element => {
+		const [state, setState] = createSignal(
+			props.settingData === undefined
+				? {
+						max: {
+							active: false,
+							value: 0,
+						},
+						min: {
+							active: false,
+							value: 0,
+						},
+						step: {
+							active: false,
+							value: 0,
+						},
+				  }
+				: props.settingData
+		);
+
+		onMount(() => {});
+
+		createEffect(() => {
+			if (props.onSettingsChanged !== undefined) {
+				props.onSettingsChanged(state());
+			}
+		});
+
+		return (
+			<div class="grid gap-3">
+				<NumberSettingInput
+					label="max:"
+					isInt={type === 'Int' ? true : false}
+					state={state().max}
+					onStateChanged={(v) =>
+						setState((oldState) => {
+							return {
+								max: v,
+								min: oldState.min,
+								step: oldState.step,
+							};
+						})
+					}
+				/>
+				<NumberSettingInput
+					label="min:"
+					state={state().min}
+					isInt={type === 'Int' ? true : false}
+					onStateChanged={(v) =>
+						setState((oldState) => {
+							return {
+								max: oldState.max,
+								min: v,
+								step: oldState.step,
+							};
+						})
+					}
+				/>
+				<NumberSettingInput
+					label="step:"
+					state={state().step}
+					isInt={type === 'Int' ? true : false}
+					onStateChanged={(v) =>
+						setState((oldState) => {
+							return {
+								max: oldState.max,
+								min: oldState.min,
+								step: v,
+							};
+						})
+					}
+				/>
+			</div>
+		);
 	};
-	onSettingsChanged?: (value: {
-		max: {
-			active: boolean;
-			value: number;
-		};
-		min: {
-			active: boolean;
-			value: number;
-		};
-		step: {
-			active: boolean;
-			value: number;
-		};
-	}) => void;
-}): JSX.Element {
-	const [state, setState] = createSignal(props.settingData);
-
-	onMount(() => {});
-
-	createEffect(() => {
-		if (props.onSettingsChanged !== undefined) {
-			props.onSettingsChanged(state());
-		}
-	});
-
-	return (
-		<div class="grid gap-3">
-			<NumberSettingInput
-				label="max:"
-				state={state().max}
-				onStateChanged={(v) =>
-					setState((oldState) => {
-						return {
-							max: v,
-							min: oldState.min,
-							step: oldState.step,
-						};
-					})
-				}
-			/>
-			<NumberSettingInput
-				label="min:"
-				state={state().min}
-				onStateChanged={(v) =>
-					setState((oldState) => {
-						return {
-							max: oldState.max,
-							min: v,
-							step: oldState.step,
-						};
-					})
-				}
-			/>
-			<NumberSettingInput
-				label="step:"
-				state={state().step}
-				onStateChanged={(v) =>
-					setState((oldState) => {
-						return {
-							max: oldState.max,
-							min: oldState.min,
-							step: v,
-						};
-					})
-				}
-			/>
-		</div>
-	);
 }
 
 function unwrapSetting<
 	SettingType extends { [T in string]: { active: boolean; value: any } }
 >(settings: SettingType) {
-	type Settings = typeof settings;
-	type SettingsKeys = keyof Settings;
-	const KEYS =
-		settings === undefined
-			? ([''] as const)
-			: (Object.keys(settings) as Array<SettingsKeys>);
-	return (KEYS as string[]).reduce((obj, key) => {
-		if (
-			settings === undefined ||
-			key === '' ||
-			settings[key].active === false
-		)
-			return obj;
-		obj[key as SettingsKeys] = settings[key as SettingsKeys].value;
+	type SettingsKeys = keyof SettingType;
+
+	const KEYS: Array<SettingsKeys> = Object.keys(settings);
+
+	return KEYS.reduce((obj, key) => {
+		if (settings[key].active) {
+			obj[key] = settings[key].value;
+		} else {
+			obj[key] = undefined;
+		}
+
 		return obj;
-	}, {} as { [x in SettingsKeys]?: Settings[SettingsKeys]['value'] });
+	}, {} as { [x in SettingsKeys]?: SettingType[SettingsKeys]['value'] });
+}
+
+function NumberInput(props: {
+	value: string;
+	step?: number | 'any';
+	max?: number;
+	min?: number;
+	isInt?: boolean;
+	disabled?: boolean;
+	class?: string;
+	onValueChanged: (value: number) => void;
+}) {
+	const [value, setValue] = createSignal<string>(props.value);
+
+	let validator = z.number().safe();
+
+	if (props.isInt) {
+		validator = validator.int();
+	}
+
+	if (props.step !== undefined && props.step !== 'any') {
+		validator = validator.step(props.step);
+	}
+
+	if (props.max !== undefined) {
+		validator = validator.step(props.max);
+	}
+	if (props.min !== undefined) {
+		validator = validator.step(props.min);
+	}
+
+	const onValueChanged = (newValue: string) => {
+		let validated = validator.safeParse(Number(newValue));
+
+		if (
+			validated.success &&
+			!newValue.includes('.') &&
+			!newValue.includes(' ') &&
+			newValue.length !== 0
+		) {
+			setValue(validated.data.toString());
+			props.onValueChanged(validated.data);
+		} else if (newValue === '-') {
+			// setValue('-');
+			props.onValueChanged(0);
+		} else if (newValue.length === 0) {
+			setValue('');
+			props.onValueChanged(0);
+		} else {
+			const OLD_VALID_NUM = Number(untrack(value));
+			setValue((OLD_VALID_NUM - 1).toString());
+			setValue(OLD_VALID_NUM.toString());
+		}
+	};
+
+	return (
+		<input
+			type="text"
+			class={`input input-bordered ${props.class}`}
+			onInput={(e) => onValueChanged(e.currentTarget.value)}
+			value={value()}
+			step={props.step}
+			max={props.max}
+			min={props.min}
+			disabled={props.disabled}
+		/>
+	);
 }

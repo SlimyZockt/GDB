@@ -1,20 +1,30 @@
-import { Show, createEffect, createMemo, createSignal, untrack } from 'solid-js'
-import { Header } from './Header'
-import { Sheet } from './Sheet'
-import { sheets, currentSheet, stuff, setSheets, setCurrentSheet } from './stores/data';
-import { Footer } from './Footer'
+import {
+	Show,
+	createEffect,
+	createMemo,
+	createSignal,
+	untrack,
+} from 'solid-js';
+import { Header } from './Header';
+import { Sheet } from './Sheet';
+import {
+	sheets,
+	currentSheet,
+	stuff,
+	setSheets,
+	setCurrentSheet,
+} from './stores/data';
+import { Footer } from './Footer';
 import { SheetDisplay } from './SheetDisplay';
 
-
 function App() {
-
-    return (
+	return (
 		<div class="min-h-screen grid grid-rows-[auto_1fr_auto]">
 			<Header />
 			<div
-				class={`bg-base-200 ${
+				class={`${
 					currentSheet.uuid.length === 0
-						? 'hero'
+						? 'hero bg-base'
 						: 'grid grid-rows-[auto_1fr]'
 				}`}
 			>
@@ -25,9 +35,9 @@ function App() {
 						<Sheet sheet={currentSheet} />
 					</>
 				) : (
-					<p class="text-center text-base text-base-content ">
-						no sheet available
-					</p>
+					<div class="hero-content text-center">
+						<p class="py-6">no sheet available</p>
+					</div>
 				)}
 			</div>
 			<Footer />
@@ -35,4 +45,4 @@ function App() {
 	);
 }
 
-export default App
+export default App;

@@ -3,6 +3,7 @@ import {
 	Column,
 	DataTypes,
 	SettingsData,
+	SheetTypes,
 	TypeData,
 	currentSheet,
 	setCurrentSheet,
@@ -16,7 +17,9 @@ import { Dynamic } from 'solid-js/web';
 
 export function ColumnCreator() {
 	const [columnName, setColumnName] = createSignal('');
-	const [type, setType] = createSignal<keyof typeof TypeData>('Int');
+	const [type, setType] = createSignal<keyof SheetTypes>('Int');
+	const [setting, setSetting] =createSignal<SheetTypes[keyof SheetTypes]['_settingType']>(undefined);
+	const [isValid, setIsValid] = createSignal<'Error' | 'Valid'>('Valid');
 
 	const availableTypes = Object.keys(TypeData) as Array<
 		keyof typeof TypeData
@@ -33,37 +36,71 @@ export function ColumnCreator() {
 		return sheet.columns.find((c) => c.name === name) === undefined;
 	};
 
-	const getSettingJSX = (props: {
-		data: (typeof TypeData)[keyof typeof TypeData];
-	}) => {
-		if (!('getSettingsField' in props.data)) return <div></div>;
-		if (props.data.getSettingsField === undefined) return <div></div>;
-		const test = (v: SettingsData) => {
-			console.table(v);
+	const getSettingJSX = (props: { type: keyof typeof TypeData }) => {
+		const [data, setData] = createSignal(TypeData[props.type]);
+
+		createEffect(() => {
+			setData(TypeData[props.type]);
+		});
+
+		const test = (v: SettingsData | 'Error') => {
+			if (v === 'Error') {
+				setIsValid(v);
+				setSetting(undefined);
+			} else {
+				setIsValid('Valid');
+				setSetting(v);
+			}
 		};
+
+		const DefaultSetting = {
+			Float: {
+				max: {
+					active: false,
+					value: 0,
+				},
+				min: {
+					active: false,
+					value: 0,
+				},
+				step: {
+					active: false,
+					value: 0,
+				},
+			},
+			Int: {
+				max: {
+					active: false,
+					value: 0,
+				},
+				min: {
+					active: false,
+					value: 0,
+				},
+				step: {
+					active: false,
+					value: 0,
+				},
+			},
+		};
+
 		return (
-			<>
-				<h2 class="font-bold">Settings</h2>
-				<br />
-				<Dynamic
-					component={props.data.getSettingsField}
-					settingData={{
-						max: {
-							active: false,
-							value: 0,
-						},
-						min: {
-							active: false,
-							value: 0,
-						},
-						step: {
-							active: false,
-							value: 0,
-						},
-					}}
-					onSettingsChanged={test}
-				/>
-			</>
+			<Show
+				when={
+					'getSettingsField' in data() &&
+					data().getSettingsField !== undefined
+				}
+			>
+				<>
+					<h2 class="font-bold">Settings</h2>
+					<br />
+					<Dynamic
+						component={data().getSettingsField}
+						settingData={undefined}
+						onSettingsChanged={test}
+					/>
+				</>
+			</Show>
 		);
 	};
 
@@ -72,6 +109,7 @@ export function ColumnCreator() {
 
 		const NAME = untrack(columnName);
 		const TYPE = untrack(type);
+		const SETTING = untrack(setting);
 
 		if (sheet === undefined) return;
 
@@ -84,6 +122,7 @@ export function ColumnCreator() {
 			uuid: newUuid,
 			name: NAME,
 			type: TYPE,
+			settingData: SETTING,
 		};
 
 		setCurrentSheet('columns', (c) => [...c, newColumn]);
@@ -127,12 +166,13 @@ export function ColumnCreator() {
 							id="column-type"
 							class="select select-bordered select-ghost flex-1 bg-base-200"
 							value={type()}
-							oninput={(v) =>
+							oninput={(e) => {
+								console.log(e.currentTarget.value);
 								setType(
-									v.currentTarget
+									e.currentTarget
 										.value as keyof typeof TypeData
-								)
-							}
+								);
+							}}
 						>
 							<For each={availableTypes}>
 								{(i) => {
@@ -143,16 +183,18 @@ export function ColumnCreator() {
 					</label>
 					<br />
 					<div>
-						<Dynamic
-							component={getSettingJSX}
-							data={TypeData[type()]}
-						/>
+						<Dynamic component={getSettingJSX} type={type()} />
 					</div>
 					<br />
 					<button
 						class={`btn btn-primary ${
-							verifyName(columnName()) ? '' : 'btn-disabled'
+							verifyName(columnName()) && isValid() === 'Valid'
+								? ''
+								: 'btn-disabled'
 						}`}
+						disabled={
+							!verifyName(columnName()) && isValid() === 'Error'
+						}
 						onClick={createColumn}
 					>
 						Create Column

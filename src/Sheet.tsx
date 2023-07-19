@@ -77,7 +77,6 @@ export function Sheet(props: { sheet: Sheet }) {
 		<div class="min-h-full grid grid-rows-[1fr_auto]">
 			<div class=" overflow-x-auto">
 				<table class="table w-full table-zebra">
-					{/* {JSON.stringify(props.sheet)} */}
 					<thead>
 						<tr class="hover felx">
 							<th class="w-0">
