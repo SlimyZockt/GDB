@@ -1,6 +1,6 @@
 import { For, Show, createEffect } from 'solid-js';
 import {
-	Sheet,
+	Table,
 	currentSheet,
 	setCurrentSheet,
 	setSheets,

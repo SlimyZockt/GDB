@@ -12,7 +12,7 @@ import {
 } from 'solid-js';
 
 import './InputStyle.css';
-import { Sheet } from '../Sheet';
+import { Table } from '../Table';
 import { z } from 'zod';
 import { sign } from 'crypto';
 
@@ -116,8 +116,8 @@ export type SheetTypes = Type<string, 'Text', undefined> &
 		}
 	> &
 	Type<boolean, 'Boolean', undefined> &
-	Type<Column[], 'List', undefined> &
-	Type<Column[], 'UniqueProperty', undefined>;
+	Type<Sheet, 'List', undefined> &
+	Type<Sheet, 'UniqueProperty', undefined>;
 
 type BaseTypes = SheetTypes[keyof SheetTypes]['_valueType'];
 
@@ -490,10 +490,10 @@ export const TypeData: SheetTypes = {
 			const onFileChange = async (fileList: FileList | null) => {
 				// TODO: ADD Native File Path
 				let File = fileList?.item(0);
-				let url = ""
+				let url = '';
 				if (File !== undefined && File !== null) {
 					url = URL.createObjectURL(File);
-				};
+				}
 				setCurrentSheet(
 					'rows',
 					props.row.id,
@@ -736,12 +736,35 @@ export const TypeData: SheetTypes = {
 	},
 	List: {
 		getInputField: (props) => {
-			return (
-				<input
-					type="checkbox"
-					class="input input-bordered min-w-full"
-				/>
-			);
+			let uuid = crypto.randomUUID();
+			// TODO: change data structure for List
+			// sheets.map((s) => s.columns).flat().filter(c => c.type === "List") !== undefined &&
+
+			while (
+				sheets.find((s) => s.uuid === uuid) !== undefined
+			) {
+				uuid = crypto.randomUUID();
+			}
+
+			let initValue =
+				props.row.data[props.colUUID] !== undefined
+					? (props.row.data[props.colUUID] as Exclude<
+							SheetTypes['List']['_valueType'],
+							undefined
+					  >)
+					: ({
+							uuid: `${currentSheet.uuid}_${currentSheet.uuid}`,
+							id: `${currentSheet.id}_list_${
+								currentSheet.columns.filter(
+									(c) => c.type === 'List'
+								).length + 1
+							}`,
+							rows: [],
+							columns: [],
+					  } as Sheet);
+						
+
+			return <Table sheet={initValue} />;
 		},
 	},
 	UniqueProperty: {

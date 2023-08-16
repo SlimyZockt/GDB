@@ -16,30 +16,26 @@ import {
 	Row,
 	sheets,
 	setSheets,
-	setCurrentSheet,
 	SheetTypes,
-	currentSheet,
 	Column,
 } from './stores/data';
 
-import { Key } from '@solid-primitives/keyed';
-import { createStore } from 'solid-js/store';
 import { Dynamic } from 'solid-js/web';
 
-export function Sheet(props: { sheet: Sheet }) {
-	// const [columns, setColumns] = createStore(Array.from(sheet.columns));
+export function Table(props: {
+	sheet: Sheet;
+	onSheetChanged: (sheet: Sheet) => void;
+}) {
+	const [data, setData] = createSignal(props.sheet);
 
 	createEffect(() => {
-		extendDataOnColumnChange(props.sheet.columns);
-	});
-
-	createEffect(() => {
-		console.log(props.sheet.rows);
+		extendDataOnColumnChange(data().columns);
+		props.onSheetChanged(data());
 	});
 
 	const extendDataOnColumnChange = (columns: Column[]) => {
-		setCurrentSheet('rows', (rows) =>
-			rows.map((r) => {
+		setData(data => {
+			data.rows.map((r) => {
 				let col_keys = columns.map((c) => c.uuid);
 
 				for (let key of col_keys) {
@@ -51,7 +47,9 @@ export function Sheet(props: { sheet: Sheet }) {
 				return {
 					...r,
 				};
-			})
+			});
+			return data;
+		}
 		);
 	};
 
@@ -62,16 +60,17 @@ export function Sheet(props: { sheet: Sheet }) {
 	};
 
 	const deleteRow = (id: number) => {
-		let sheet = currentSheet;
-		if (sheet === undefined) return;
-		let newRow = sheet.rows
-			.filter((row) => row.id !== id)
+		let newRow = data()
+			.rows.filter((row) => row.id !== id)
 			.map((row, i) => ({ ...row, id: i }));
-		// props.sheet.rows = newRow;
-		// let new_sheet = sheets.filter((s) => s.uuid !== props.sheet?.uuid);
-		// setSheets([...new_sheet, props.sheet]);
-		setCurrentSheet((s) => ({ ...s, rows: newRow }));
+		// data().rows = newRow;
+		// let new_sheet = sheets.filter((s) => s.uuid !== data()?.uuid);
+		// setSheets([...new_sheet, data()]);
+		data().rows = newRow;
 	};
+
+	const updateRows = (newRows: Row[]) =>
+		setData((sheet) => ({ ...sheet, rows: newRows }));
 
 	return (
 		<div class="min-h-full grid grid-rows-[1fr_auto]">
@@ -82,20 +81,20 @@ export function Sheet(props: { sheet: Sheet }) {
 							<th class="w-0">
 								<label> id </label>
 							</th>
-							<For each={props.sheet.columns}>
+							<For each={data().columns}>
 								{(c) => (
 									<th>
 										<TableHeader>{c.name}</TableHeader>
 									</th>
 								)}
 							</For>
-							<Show when={props.sheet.rows.length > 0 === true}>
+							<Show when={data().rows.length > 0 === true}>
 								<th class="w-0" />
 							</Show>
 						</tr>
 					</thead>
 					<tbody>
-						<For each={props.sheet.rows}>
+						<For each={data().rows}>
 							{(row, id) => (
 								<tr>
 									<td>
@@ -108,14 +107,13 @@ export function Sheet(props: { sheet: Sheet }) {
 													component={
 														TypeData[
 															getColumnType(
-																props.sheet
-																	.columns,
+																data().columns,
 																key
 															)
 														].getInputField
 													}
 													settings={
-														props.sheet.columns.find(
+														data().columns.find(
 															(c) => c.uuid == key
 														)?.settingData
 													}
@@ -141,18 +139,30 @@ export function Sheet(props: { sheet: Sheet }) {
 			</div>
 			<div class="m-1 inline-grid grid-cols-[1fr_auto_auto_auto_1fr] gap-3 pb-3">
 				<br />
-				<CreateRowBtn sheet={props.sheet} count={1}>
+				<CreateRowBtn
+					sheet={data()}
+					count={1}
+					onRowCreated={updateRows}
+				>
 					Add Row
 				</CreateRowBtn>
-				<CreateRowBtn sheet={props.sheet} count={5}>
+				<CreateRowBtn
+					sheet={data()}
+					count={5}
+					onRowCreated={updateRows}
+				>
 					Add 5 Rows
 				</CreateRowBtn>
-				<CreateRowBtn sheet={props.sheet} count={10}>
+				<CreateRowBtn
+					sheet={data()}
+					count={10}
+					onRowCreated={updateRows}
+				>
 					Add 10 Rows
 				</CreateRowBtn>
 				<br />
 			</div>
-			<div>{JSON.stringify(props.sheet.rows)}</div>
+			<div>{JSON.stringify(data().rows)}</div>
 		</div>
 	);
 }
@@ -175,11 +185,12 @@ function TableHeader({
 
 function CreateRowBtn(props: {
 	sheet: Sheet;
+	onRowCreated: (newRows: Row[]) => void;
 	count: number;
 	children: JSX.Element | string;
 }) {
 	const addRow = () => {
-		const NEW_ROW = currentSheet.columns.map((column) => {
+		const NEW_ROW = props.sheet.columns.map((column) => {
 			return [column.uuid, undefined] as const;
 		});
 
@@ -204,7 +215,7 @@ function CreateRowBtn(props: {
 			new_rows.push({ ...row });
 		}
 
-		setCurrentSheet('rows', (r) => [...r, ...new_rows]);
+		props.onRowCreated([...props.sheet.rows, ...new_rows]);
 	};
 
 	return (

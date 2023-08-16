@@ -6,7 +6,7 @@ import {
 	untrack,
 } from 'solid-js';
 import { Header } from './Header';
-import { Sheet } from './Sheet';
+import { Table } from './Table';
 import {
 	sheets,
 	currentSheet,
@@ -28,11 +28,10 @@ function App() {
 						: 'grid grid-rows-[auto_1fr]'
 				}`}
 			>
-				{/* {JSON.stringify(currentSheet())} */}
 				{currentSheet.uuid.length > 0 ? (
 					<>
 						<SheetDisplay />
-						<Sheet sheet={currentSheet} />
+						<Table sheet={currentSheet} onSheetChanged={sheet => setCurrentSheet(sheet)}/>
 					</>
 				) : (
 					<div class="hero-content text-center">
