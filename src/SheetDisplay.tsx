@@ -1,32 +1,15 @@
-import { For, Show, createEffect } from 'solid-js';
+import { For } from 'solid-js';
 import {
-	Table,
-	currentSheet,
-	setCurrentSheet,
-	setSheets,
+	Sheet,
 	sheets,
 } from './stores/data';
 
-export function SheetDisplay() {
-
-	const updateTable = (sheetUUID: string) => {
-    	const TEMP_SHEET = sheets.find((s) => s.uuid === sheetUUID);
-		if (TEMP_SHEET === undefined) return;
-		const NEXT_SHEET: Sheet = JSON.parse(JSON.stringify(TEMP_SHEET));
-
-		setSheets((sheets) => {
-			let new_sheets = sheets.map((s) => {
-				return s.uuid === currentSheet.uuid
-					? (JSON.parse(JSON.stringify(currentSheet)) as Sheet)
-					: s;
-			});
-
-			return new_sheets;
-		});
-
-		setCurrentSheet(NEXT_SHEET);
-	};
-
+export function SheetDisplay(
+	props: {
+		onsSheetSwitched: (newSheetUUID: string) => void;
+		selectedSheetUUID: string
+	}
+) {
 	const sortedSheetsNames =  (sheets: Sheet[]) => {
 		let names: {id: string, uuid: string}[] = [];
 		for (let sheet of sheets) {
@@ -41,8 +24,10 @@ export function SheetDisplay() {
 				{(sheet) => (
 					<button
 						class="tab tab-bordered"
-						class:tab-active={sheet.uuid === currentSheet.uuid}
-						onClick={() => updateTable(sheet.uuid)}
+						class:tab-active={sheet.uuid === props.selectedSheetUUID}
+						onClick={() =>
+							props.onsSheetSwitched(sheet.uuid)
+						}
 					>
 						{sheet.id}
 					</button>

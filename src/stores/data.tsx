@@ -9,19 +9,14 @@ import {
 	Accessor,
 	onMount,
 	Index,
+	Component,
+	Show,
 } from 'solid-js';
 
 import './InputStyle.css';
-import { Table } from '../Table';
+import { Table, extendDataOnColumnChange } from '../Table';
 import { z } from 'zod';
-import { sign } from 'crypto';
 
-export const [currentSheet, setCurrentSheet] = createStore<Sheet>({
-	uuid: '',
-	id: '',
-	rows: [],
-	columns: [],
-});
 export const [sheets, setSheets] = createStore<Sheet[]>([]);
 export const [stuff, setStuff] = createSignal(false);
 
@@ -34,23 +29,24 @@ type StringLiteral<T> = T extends string
 type Type<
 	ValueType,
 	TypeName extends string,
-	SettingType extends
-		| { [T in string]: { active: boolean; value: any } }
-		| undefined
+	SettingType extends { [T in string]: unknown } | undefined
 > = {
-	[x in StringLiteral<TypeName>]: {
-		_valueType?: ValueType; // this is TS Hack,
-		_settingType?: SettingType; // this is TS Hack,
+	readonly [x in StringLiteral<TypeName>]: {
+		readonly _valueType?: ValueType; // this is TS Hack,
+		readonly _settingType?: SettingType; // this is TS Hack,
+		readonly defaultValue: Exclude<ValueType, undefined>;
 		getSettingsField?: (props: {
 			settingData?: SettingType;
 			onSettingsChanged?: (value: SettingType | 'Error') => void;
 		}) => JSX.Element;
-		getInputField: (props: {
-			settings: SettingType | undefined;
-			row: Row;
-			colUUID: string;
-		}) => JSX.Element;
-		displayName?: string;
+		readonly getInputField: Component<{
+			settings?: SettingType;
+			onSettingsChanged: (value: SettingType) => void;
+			onValueChanged: (value: ValueType) => void;
+			value: ValueType;
+			sheet: Sheet;
+		}>;
+		readonly displayName?: string;
 	};
 };
 
@@ -59,36 +55,18 @@ export type SheetTypes = Type<string, 'Text', undefined> &
 		number,
 		'Int',
 		{
-			max: {
-				active: boolean;
-				value: number;
-			};
-			min: {
-				active: boolean;
-				value: number;
-			};
-			step: {
-				active: boolean;
-				value: number;
-			};
+			max?: number;
+			min?: number;
+			step?: number;
 		}
 	> &
 	Type<
 		number,
 		'Float',
 		{
-			max: {
-				active: boolean;
-				value: number;
-			};
-			min: {
-				active: boolean;
-				value: number;
-			};
-			step: {
-				active: boolean;
-				value: number;
-			};
+			max?: number;
+			min?: number;
+			step?: number;
 		}
 	> &
 	Type<{ r: number; g: number; b: number }, 'ColorRGB', undefined> &
@@ -98,10 +76,7 @@ export type SheetTypes = Type<string, 'Text', undefined> &
 		string,
 		'FilePath',
 		{
-			Filenames: {
-				value: string[];
-				active: boolean;
-			};
+			Filenames: string[];
 		}
 	> &
 	Type<Date, 'Date', undefined> &
@@ -109,20 +84,23 @@ export type SheetTypes = Type<string, 'Text', undefined> &
 		string,
 		'Enum',
 		{
-			possibleValues: {
-				value: string[];
-				active: boolean;
-			};
+			possibleValues: string[];
 		}
 	> &
 	Type<boolean, 'Boolean', undefined> &
-	Type<Sheet, 'List', undefined> &
+	Type<
+		Sheet,
+		'List',
+		{
+			columns: Column[];
+		}
+	> &
 	Type<Sheet, 'UniqueProperty', undefined>;
 
 type BaseTypes = SheetTypes[keyof SheetTypes]['_valueType'];
 
 type List = Column[];
-type UniqueProperty = Column[];
+type UniqueList = Column[];
 
 export type ColumnTypes = keyof SheetTypes;
 
@@ -143,10 +121,10 @@ export type Row = {
 	};
 };
 
-export type DataTypes = BaseTypes | List | UniqueProperty;
+export type DataTypes = BaseTypes;
 
 export type Sheet = {
-	uuid: string;
+	uuid: string | 'undefined';
 	id: string;
 	rows: Row[];
 	columns: Column[];
@@ -155,107 +133,57 @@ export type Sheet = {
 export const TypeData: SheetTypes = {
 	Float: {
 		getInputField: (props) => {
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[props.colUUID] as number)
-					: 0;
-
-			let settings =
-				props.settings === undefined
-					? {}
-					: unwrapSetting(props.settings);
-
-			const onNumberChange = (number: number) => {
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					number
-				);
-			};
-
 			return (
 				<NumberInput
-					onValueChanged={(v) => onNumberChange(v)}
-					value={initValue.toString()}
+					onValueChanged={(v) => props.onValueChanged(v)}
+					value={props.value.toString()}
 					step="any"
 					isInt={false}
 					class="min-w-full"
-					{...settings}
+					{...props.settings}
 				/>
 			);
 		},
 		getSettingsField: getNumericSettings('Float'),
+		defaultValue: 0,
 	},
 	Int: {
 		getSettingsField: getNumericSettings('Int'),
 		getInputField: (props) => {
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[props.colUUID] as number)
-					: 0;
 
-			let settings =
-				props.settings === undefined
-					? {}
-					: unwrapSetting(props.settings);
-
-			const onNumberChange = (number: number) => {
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					number
-				);
-			};
+			console.log(props.settings);
+			
 
 			return (
 				<NumberInput
-					onValueChanged={(v) => onNumberChange(v)}
-					value={initValue.toString()}
+					onValueChanged={(v) => props.onValueChanged(v)}
+					value={props.value.toString()}
 					step="any"
 					isInt={true}
 					class="min-w-full"
-					{...settings}
+					{...props.settings}
 				/>
 			);
 		},
+		defaultValue: 0,
 	},
 	Text: {
 		getInputField: (props) => {
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[props.colUUID] as string)
-					: '';
-
-			const onTextChange = (text: string) => {
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					text
-				);
-			};
-
 			return (
 				<input
 					type="text"
 					placeholder=""
 					class="input input-bordered min-w-full"
-					onInput={(e) => onTextChange(e.currentTarget.value)}
-					value={initValue}
+					onInput={(e) => props.onValueChanged(e.currentTarget.value)}
+					value={props.value}
 				/>
 			);
 		},
+		defaultValue: '',
 	},
 	ColorRGB: {
 		// validation: z.object({ r: z.number(), g: z.number(), b: z.number() }),
 		getInputField: (props) => {
-			// const [colorRgb, setColorRgb] = createSignal(initColor);
-
 			const rgbToHex = (color: { r: number; g: number; b: number }) =>
 				'#' +
 				((1 << 24) | (color.r << 16) | (color.g << 8) | color.b)
@@ -270,31 +198,12 @@ export const TypeData: SheetTypes = {
 				};
 			};
 
-			const initColor =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[props.colUUID] as {
-							r: number;
-							g: number;
-							b: number;
-					  })
-					: {
-							r: 0,
-							g: 0,
-							b: 0,
-					  };
-
-			const [colorHEX, setColorHEX] = createSignal(rgbToHex(initColor));
+			const [colorHEX, setColorHEX] = createSignal(rgbToHex(props.value));
 
 			const onColorChange = (value: string) => {
 				setColorHEX(value);
 				let rgb = hexToRgb(value);
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					rgb
-				);
+				props.onValueChanged(rgb);
 			};
 
 			return (
@@ -310,68 +219,41 @@ export const TypeData: SheetTypes = {
 				</label>
 			);
 		},
+		defaultValue: {
+			r: 0,
+			g: 0,
+			b: 0,
+		},
 	},
 	Date: {
 		getInputField: (props) => {
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[props.colUUID] as Date)
-					: new Date(2023, 1, 1);
-
-			const onDataChange = (date: Date | null) => {
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					date === null ? new Date(2023, 1, 1) : date
-				);
-			};
-
-			onDataChange(initValue);
-
 			return (
 				<input
 					type="date"
 					class="input input-bordered min-w-full"
-					value="2023-01-01"
-					onInput={(e) => onDataChange(e.currentTarget.valueAsDate)}
+					value="1999-01-01"
+					onInput={(e) =>
+						props.onValueChanged(
+							e.currentTarget.valueAsDate === null
+								? new Date(1999, 1, 1)
+								: e.currentTarget.valueAsDate
+						)
+					}
 				/>
 			);
 		},
+		defaultValue: new Date(1999, 1, 1),
 	},
 	Enum: {
 		getInputField: (props) => {
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[
-							props.colUUID
-					  ] as SheetTypes['Enum']['_valueType'])
-					: '';
-
-			let settings =
-				props.settings === undefined
-					? {}
-					: unwrapSetting(props.settings);
-
-			const onEnumChange = (text: string) => {
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					text
-				);
-			};
-
 			return (
 				<select
 					class="select select-bordered select-ghost min-w-full bg-base-200"
-					onInput={(v) => onEnumChange(v.currentTarget.value)}
+					onInput={(v) => props.onValueChanged(v.currentTarget.value)}
 				>
-					<For each={settings.possibleValues}>
+					<For each={props.settings?.possibleValues}>
 						{(v) => (
-							<option selected={v === initValue}> {v} </option>
+							<option selected={v === props.value}> {v} </option>
 						)}
 					</For>
 				</select>
@@ -381,7 +263,7 @@ export const TypeData: SheetTypes = {
 			const [states, setStates] = createSignal(
 				props.settingData === undefined
 					? (['newEnum1'] as string[])
-					: props.settingData.possibleValues.value
+					: props.settingData.possibleValues
 			);
 
 			const updateState = (newState: string, id: number) => {
@@ -412,10 +294,7 @@ export const TypeData: SheetTypes = {
 				props.onSettingsChanged(
 					isValid(states())
 						? {
-								possibleValues: {
-									value: states(),
-									active: true,
-								},
+								possibleValues: states(),
 						  }
 						: 'Error'
 				);
@@ -475,17 +354,11 @@ export const TypeData: SheetTypes = {
 				</div>
 			);
 		},
+		defaultValue: '',
 	},
 	FilePath: {
 		getInputField: (props) => {
 			// TODO: ADD Setting to Save Data
-
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[
-							props.colUUID
-					  ] as SheetTypes['FilePath']['_valueType'])
-					: '';
 
 			const onFileChange = async (fileList: FileList | null) => {
 				// TODO: ADD Native File Path
@@ -494,39 +367,29 @@ export const TypeData: SheetTypes = {
 				if (File !== undefined && File !== null) {
 					url = URL.createObjectURL(File);
 				}
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					url
-				);
-			};
 
-			let settings =
-				props.settings === undefined
-					? {}
-					: unwrapSetting(props.settings);
+				props.onValueChanged(url);
+			};
 
 			return (
 				<input
 					type="file"
 					class="file-input file-input-bordered w-full min-w-full"
 					onInput={(e) => onFileChange(e.currentTarget.files)}
-					value={initValue}
-					accept={settings.Filenames?.join(',')}
+					value={props.value}
+					accept={props.settings?.Filenames?.join(',')}
 				/>
 			);
 		},
 		getSettingsField(props) {
-			const [states, setStates] = createSignal(
+			const [fileExtension, setFileExtension] = createSignal(
 				props.settingData === undefined
 					? ([] as string[])
-					: props.settingData.Filenames.value
+					: props.settingData.Filenames
 			);
 
-			const updateState = (newState: string, id: number) => {
-				setStates((v) => {
+			const updateFileExtension = (newState: string, id: number) => {
+				setFileExtension((v) => {
 					v[id] = newState;
 					return [...v];
 				});
@@ -551,12 +414,9 @@ export const TypeData: SheetTypes = {
 			createEffect(() => {
 				if (props.onSettingsChanged === undefined) return;
 				props.onSettingsChanged(
-					isValid(states())
+					isValid(fileExtension())
 						? {
-								Filenames: {
-									value: states(),
-									active: true,
-								},
+								Filenames: fileExtension(),
 						  }
 						: 'Error'
 				);
@@ -567,14 +427,14 @@ export const TypeData: SheetTypes = {
 					<h1 class="text-md font-bold">Allowed file extension: </h1>
 					<br />
 					<div class="min-w-full bg-base-200 p-1 rounded-md">
-						<Index each={states()}>
+						<Index each={fileExtension()}>
 							{(value, i) => (
 								<label class="input-group p-1">
 									<input
 										type="text"
 										class={`input flex-1 ${
 											isCurrentStateValid(
-												states(),
+												fileExtension(),
 												value()
 											)
 												? 'input-error'
@@ -582,7 +442,7 @@ export const TypeData: SheetTypes = {
 										}`}
 										value={value()}
 										onInput={(e) =>
-											updateState(
+											updateFileExtension(
 												e.currentTarget.value,
 												i
 											)
@@ -591,7 +451,7 @@ export const TypeData: SheetTypes = {
 									<button
 										class="btn btn-error"
 										onClick={(_) =>
-											setStates((oldStates) =>
+											setFileExtension((oldStates) =>
 												oldStates.filter(
 													(_, id) => id !== i
 												)
@@ -607,182 +467,210 @@ export const TypeData: SheetTypes = {
 					<button
 						class="btn min-w-full"
 						onClick={() =>
-							setStates((s) => [
+							setFileExtension((s) => [
 								...s,
-								`newEnum${states().length + 1}`,
+								`.${fileExtension().length + 1}`,
 							])
 						}
 					>
-						Create New Value
+						Add File Extension
 					</button>
 				</div>
 			);
 		},
+		defaultValue: '',
 	},
 	LineReference: {
 		getInputField: (props) => {
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[
-							props.colUUID
-					  ] as SheetTypes['LineReference']['_valueType'])
-					: '';
-
-			let settings =
-				props.settings === undefined
-					? {}
-					: unwrapSetting(props.settings);
-
-			const onEnumChange = (
-				text: SheetTypes['LineReference']['_valueType']
-			) => {
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					text
-				);
-			};
-
 			return (
 				<select
 					class="select select-bordered select-ghost min-w-full bg-base-200"
-					onInput={(v) => onEnumChange(v.currentTarget.value)}
+					onInput={(v) => props.onValueChanged(v.currentTarget.value)}
 				>
-					<For
-						each={Object.keys(currentSheet.rows.map((r) => r.uuid))}
-					>
+					<For each={['']}>
 						{(v) => (
-							<option selected={v === initValue}> {v} </option>
+							<option selected={v === props.value}> {v} </option>
 						)}
 					</For>
 				</select>
 			);
 		},
+		defaultValue: '',
 	},
 	SheetReference: {
 		getInputField: (props) => {
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[
-							props.colUUID
-					  ] as SheetTypes['SheetReference']['_valueType'])
-					: '';
-
 			let settings =
 				props.settings === undefined
 					? {}
 					: unwrapSetting(props.settings);
 
-			const onEnumChange = (
-				text: SheetTypes['SheetReference']['_valueType']
-			) => {
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					text
-				);
-			};
-
 			return (
 				<select
 					class="select select-bordered select-ghost min-w-full bg-base-200"
-					onInput={(v) => onEnumChange(v.currentTarget.value)}
+					onInput={(v) => props.onValueChanged(v.currentTarget.value)}
 				>
-					<For
-						each={Object.keys(currentSheet.rows.map((r) => r.uuid))}
-					>
+					<For each={['']}>
 						{(v) => (
-							<option selected={v === initValue}> {v} </option>
+							<option selected={v === props.value}> {v} </option>
 						)}
 					</For>
 				</select>
 			);
 		},
+		defaultValue: '',
 	},
 	Boolean: {
 		getInputField: (props) => {
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[
-							props.colUUID
-					  ] as SheetTypes['Boolean']['_valueType'])
-					: false;
-
-			const onBoolChange = (
-				bool: SheetTypes['Boolean']['_valueType']
-			) => {
-				setCurrentSheet(
-					'rows',
-					props.row.id,
-					'data',
-					props.colUUID,
-					bool
-				);
-			};
-
 			return (
 				<input
 					type="checkbox"
 					class="input input-bordered min-w-full"
-					checked={initValue}
-					onInput={(v) => onBoolChange(v.currentTarget.checked)}
+					checked={props.value}
+					onInput={(v) =>
+						props.onValueChanged(v.currentTarget.checked)
+					}
 				/>
 			);
 		},
+		defaultValue: false,
 	},
 	List: {
 		getInputField: (props) => {
 			let uuid = crypto.randomUUID();
-			// TODO: change data structure for List
-			// sheets.map((s) => s.columns).flat().filter(c => c.type === "List") !== undefined &&
-
-			while (
-				sheets.find((s) => s.uuid === uuid) !== undefined
-			) {
+			while (sheets.find((s) => s.uuid === uuid) !== undefined) {
 				uuid = crypto.randomUUID();
 			}
 
-			let initValue =
-				props.row.data[props.colUUID] !== undefined
-					? (props.row.data[props.colUUID] as Exclude<
-							SheetTypes['List']['_valueType'],
-							undefined
-					  >)
-					: ({
-							uuid: `${currentSheet.uuid}_${currentSheet.uuid}`,
-							id: `${currentSheet.id}_list_${
-								currentSheet.columns.filter(
+			const [isOpen, setIsOpen] = createSignal(false);
+
+			createEffect(() => {
+				setSubSheet((s) => ({
+					...s,
+					columns:
+						props.settings !== undefined &&
+						props.settings.columns !== undefined
+							? props.settings.columns
+							: [],
+					rows: extendDataOnColumnChange(
+						s,
+						props.settings !== undefined &&
+							props.settings.columns !== undefined
+							? props.settings.columns
+							: []
+					),
+				}));
+			});
+
+			let newSubSheet =
+				props.value.uuid === 'undefined'
+					? ({
+							uuid: `${props.sheet.uuid}_${uuid}`,
+							id: `${props.sheet.id}_list_${
+								props.sheet.columns.filter(
 									(c) => c.type === 'List'
-								).length + 1
+								).length
 							}`,
 							rows: [],
 							columns: [],
-					  } as Sheet);
-						
+					  } as Sheet)
+					: props.value;
 
-			return <Table sheet={initValue} />;
+			const [subSheet, setSubSheet] = createSignal(newSubSheet);
+
+			return (
+				<div class="collapse border border-base-300 collapse-plus">
+					<input
+						type="checkbox"
+						onInput={(e) => setIsOpen(e.currentTarget.checked)}
+					/>
+					<div class="collapse-title text-xl font-medium bg-base-300 ">
+						<Show when={isOpen()} fallback={<p>[]</p>}>
+							<p>...</p>
+						</Show>
+					</div>
+					<div class="collapse-content bg-base-200 ">
+						<Table
+							sheet={subSheet()}
+							onSheetChanged={(s) => {
+								props.onSettingsChanged({
+									columns: s.columns,
+								});
+								setSubSheet(s);
+								props.onValueChanged(s);
+							}}
+						/>
+					</div>
+				</div>
+			);
+		},
+		defaultValue: {
+			uuid: 'undefined',
+			id: '',
+			rows: [],
+			columns: [],
 		},
 	},
 	UniqueProperty: {
 		getInputField: (props): JSX.Element => {
+			let uuid = crypto.randomUUID();
+			while (sheets.find((s) => s.uuid === uuid) !== undefined) {
+				uuid = crypto.randomUUID();
+			}
+
+			const [isOpen, setIsOpen] = createSignal(false);
+
+			let newSubSheet =
+				props.value.uuid === 'undefined'
+					? ({
+							uuid: `${props.sheet.uuid}_${uuid}`,
+							id: `${props.sheet.id}_list_${
+								props.sheet.columns.filter(
+									(c) => c.type === 'List'
+								).length
+							}`,
+							rows: [],
+							columns: [],
+					  } as Sheet)
+					: props.value;
+
+			const [subSheet, setSubSheet] = createSignal(newSubSheet);
+
 			return (
-				<input
-					type="checkbox"
-					class="input input-bordered min-w-full"
-				/>
+				<div class="collapse border border-base-300 collapse-plus">
+					<input
+						type="checkbox"
+						onInput={(e) => setIsOpen(e.currentTarget.checked)}
+					/>
+					<div class="collapse-title text-xl font-medium bg-base-300 ">
+						<Show when={isOpen()} fallback={<p>[]</p>}>
+							<p>...</p>
+						</Show>
+					</div>
+					<div class="collapse-content bg-base-200 ">
+						<Table
+							sheet={subSheet()}
+							onSheetChanged={(s) => {
+								setSubSheet(s);
+								props.onValueChanged(s);
+							}}
+						/>
+					</div>
+				</div>
 			);
+		},
+		defaultValue: {
+			uuid: '',
+			id: '',
+			rows: [],
+			columns: [],
 		},
 	},
 };
 
 function NumberSettingInput(prop: {
 	label: string;
-	state?: { value: number; active: boolean };
-	onStateChanged?: (state: { value: number; active: boolean }) => {};
+	state?: number;
+	onStateChanged?: (state: number | undefined) => {};
 	isInt: boolean;
 }) {
 	const [active, setActive] = createSignal(false);
@@ -790,7 +678,7 @@ function NumberSettingInput(prop: {
 
 	createEffect(() => {
 		if (prop.onStateChanged !== undefined) {
-			prop.onStateChanged({ value: value(), active: active() });
+			prop.onStateChanged(active() ? value() : undefined);
 		}
 	});
 
@@ -800,9 +688,7 @@ function NumberSettingInput(prop: {
 
 			<NumberInput
 				onValueChanged={(v) => setValue(v)}
-				value={
-					prop.state === undefined ? '0' : prop.state.value.toString()
-				}
+				value={prop.state === undefined ? '0' : prop.state.toString()}
 				isInt={prop.isInt}
 				disabled={!active()}
 				class={`input input-bordered flex-1 bg-base-200 ${
@@ -814,9 +700,7 @@ function NumberSettingInput(prop: {
 				<input
 					type="checkbox"
 					class={'checkbox'}
-					checked={
-						prop.state === undefined ? false : prop.state.active
-					}
+					checked={prop.state === undefined ? false : true}
 					onInput={(v) => {
 						setActive(v.currentTarget.checked);
 					}}
@@ -829,54 +713,19 @@ function NumberSettingInput(prop: {
 function getNumericSettings(type: 'Int' | 'Float') {
 	return (props: {
 		settingData?: {
-			max: {
-				active: boolean;
-				value: number;
-			};
-			min: {
-				active: boolean;
-				value: number;
-			};
-			step: {
-				active: boolean;
-				value: number;
-			};
+			max?: number;
+			min?: number;
+			step?: number;
 		};
 		onSettingsChanged?: (value: {
-			max: {
-				active: boolean;
-				value: number;
-			};
-			min: {
-				active: boolean;
-				value: number;
-			};
-			step: {
-				active: boolean;
-				value: number;
-			};
+			max?: number;
+			min?: number;
+			step?: number;
 		}) => void;
 	}): JSX.Element => {
 		const [state, setState] = createSignal(
-			props.settingData === undefined
-				? {
-						max: {
-							active: false,
-							value: 0,
-						},
-						min: {
-							active: false,
-							value: 0,
-						},
-						step: {
-							active: false,
-							value: 0,
-						},
-				  }
-				: props.settingData
+			props.settingData === undefined ? {} : props.settingData
 		);
-
-		onMount(() => {});
 
 		createEffect(() => {
 			if (props.onSettingsChanged !== undefined) {
@@ -889,7 +738,7 @@ function getNumericSettings(type: 'Int' | 'Float') {
 				<NumberSettingInput
 					label="max:"
 					isInt={type === 'Int' ? true : false}
-					state={state().max}
+					state={state()?.max}
 					onStateChanged={(v) =>
 						setState((oldState) => {
 							return {
@@ -974,10 +823,12 @@ function NumberInput(props: {
 	}
 
 	if (props.max !== undefined) {
-		validator = validator.step(props.max);
+		console.log(props.max);
+		
+		validator = validator.max(props.max);
 	}
 	if (props.min !== undefined) {
-		validator = validator.step(props.min);
+		validator = validator.min(props.min);
 	}
 
 	const onValueChanged = (newValue: string) => {
@@ -989,7 +840,7 @@ function NumberInput(props: {
 			!newValue.includes(' ') &&
 			newValue.length !== 0
 		) {
-			setValue(validated.data.toString());
+			setValue(newValue);
 			props.onValueChanged(validated.data);
 		} else if (newValue === '-') {
 			// setValue('-');
@@ -1010,9 +861,6 @@ function NumberInput(props: {
 			class={`input input-bordered ${props.class}`}
 			onInput={(e) => onValueChanged(e.currentTarget.value)}
 			value={value()}
-			step={props.step}
-			max={props.max}
-			min={props.min}
 			disabled={props.disabled}
 		/>
 	);

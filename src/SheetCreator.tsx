@@ -1,37 +1,25 @@
-import { createEffect, createSignal, untrack } from 'solid-js';
-import { z } from 'zod';
+import { createSignal, untrack } from 'solid-js';
 
-import {
-	sheets,
-	setSheets,
-	setCurrentSheet,
-	Sheet,
-	currentSheet,
-} from './stores/data';
+import { sheets, setSheets, Sheet } from './stores/data';
 
-export function SheetCreator() {
+export function SheetCreator(props: { sheet: Sheet; onSheetCreated: (sheet: Sheet) => void}) {
 	const [sheetName, setSheetName] = createSignal('');
 	const [nameIsValid, setNameIsValid] = createSignal(false);
-
-	createEffect(() => {
-		validateSheetName(sheetName());
-	});
+	const [dialogRef, setDialogRef] = createSignal<HTMLDialogElement>();
 
 	const validateSheetName = (name: string) => {
-		// if (sheets === undefined || sheets.length === 1) return;
 		if (
 			sheets.find((s) => s.id === name) !== undefined ||
 			name.length === 0
 		) {
-			setNameIsValid(false);
-			return;
+			return false;
 		}
-		setNameIsValid(true);
+		return true;
 	};
 
 	const createSheet = () => {
 		const NAME = untrack(sheetName);
-		if (sheets.find((s) => s.id === NAME) !== undefined) return;
+		if (!nameIsValid()) return;
 
 		let uuid = crypto.randomUUID();
 
@@ -46,38 +34,30 @@ export function SheetCreator() {
 			columns: [],
 		};
 
-		setSheets((sheets) => {
-			let new_sheets = [...sheets, NEW_SHEET];
-			new_sheets = new_sheets.map((s) => {
-				return s.uuid === currentSheet.uuid
-					? JSON.parse(JSON.stringify(currentSheet))
-					: s;
-			});
+		setSheets((sheets) => [...sheets, NEW_SHEET]);
 
-			return new_sheets;
-		});
-		// console.log(sheets);
-		// console.log(sheets);
-
-		setCurrentSheet(NEW_SHEET);
+		props.onSheetCreated(NEW_SHEET);
 		setSheetName('');
 	};
 
 	return (
 		<>
-			<input
-				type="checkbox"
-				id="sheet-creation-popup"
-				class="modal-toggle"
-			/>
-			<div class="modal">
-				<div class="modal-box relative">
-					<label
-						for="sheet-creation-popup"
-						class="btn btn-sm btn-circle absolute right-2 top-2"
-					>
+			<button
+				onClick={() => dialogRef()?.showModal()}
+				class="btn btn-outline btn-accent"
+			>
+				new Sheet
+			</button>
+			<dialog class="modal" ref={setDialogRef}>
+				<form method="dialog" class="modal-box">
+					<input
+						type="checkbox"
+						id="sheet-creation-popup"
+						class="modal-toggle"
+					/>
+					<button class="btn btn-sm btn-circle absolute right-2 top-2">
 						✕
-					</label>
+					</button>
 					<h3 class="font-bold text-lg">Sheet Creation</h3>
 					<br />
 					<label class="input-group" for="column-name">
@@ -88,19 +68,29 @@ export function SheetCreator() {
 							placeholder="New Sheet"
 							class="input input-bordered flex-1"
 							value={sheetName()}
-							oninput={(e) => setSheetName(e.currentTarget.value)}
+							oninput={(e) => {
+								setNameIsValid(
+									validateSheetName(e.currentTarget.value)
+								);
+								setSheetName(e.currentTarget.value);
+							}}
 						/>
 					</label>
 					<br />
 					<button
-						class="btn btn-primary min-w-full"
-						class:btn-disabled={!nameIsValid()}
+						class={`btn min-w-full ${
+							nameIsValid() ? 'btn-primary ' : 'btn-disabled'
+						}`}
+						disabled={!nameIsValid()}
 						onClick={createSheet}
 					>
 						Create
 					</button>
-				</div>
-			</div>
+				</form>
+				<form method="dialog" class="modal-backdrop">
+					<button>close</button>
+				</form>
+			</dialog>
 		</>
 	);
 }

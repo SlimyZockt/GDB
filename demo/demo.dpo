@@ -1,0 +1,201 @@
+{
+    "sheets": [
+        {
+            "name": "newSheet",
+            "description": "description of what the sheet is",
+            "displayColumn": "id",
+            "guid": "8044f2f7-60de-4190-b754-25fc127c1ce7",
+            "columns": [
+                {
+                    "typeStr": "list",
+                    "guid": "80d76d57-a29a-48a4-92ca-bd9e6f2ebf50",
+                    "name": "new list",
+                    "description": "new list field",
+                    "sheet": "57d05655-d4da-4256-82aa-a4685ee4d048",
+                    "defaultValue": [],
+                    "iconName": "newList",
+                    "configurable": {
+                        "name": "text",
+                        "description": "text"
+                    }
+                },
+                {
+                    "typeStr": "props",
+                    "guid": "2582f2cd-5df8-4389-98c0-df20d666df05",
+                    "name": "new properties",
+                    "description": "new properties field",
+                    "sheet": "cb75d68c-5e77-4a2a-a676-695bb4f45853",
+                    "defaultValue": {},
+                    "iconName": "newProps",
+                    "configurable": {
+                        "name": "text",
+                        "description": "text"
+                    }
+                }
+            ],
+            "lines": [
+                {
+                    "guid": "9af40bc1-de4c-43cb-87f6-1ee415a4ffc0",
+                    "id": "0",
+                    "new list": [
+                        {
+                            "guid": "244ecdb9-cb7c-4a9c-8b57-3a68101e8794",
+                            "id": "2344444444",
+                            "newText": "324"
+                        }
+                    ],
+                    "new properties": {
+                        "guid": "5c4091f8-366e-4a5b-b2b3-a2d5fec998e2",
+                        "suii": 234444444
+                    }
+                },
+                {
+                    "guid": "cd6b840a-3e0b-4580-8caa-f822404c8ad1",
+                    "id": "1",
+                    "new list": [
+                        {
+                            "guid": "6e8f5935-af36-4154-b247-78d0e4e21b69",
+                            "id": "3244444444",
+                            "newText": "234234"
+                        }
+                    ],
+                    "new properties": {
+                        "guid": "48478a64-3d43-4dd9-bc57-a35f1df8eff6",
+                        "suii": 0
+                    }
+                },
+                {
+                    "guid": "a84e857d-c55c-4b13-b3d9-10e3e944981c",
+                    "id": "2",
+                    "new list": [],
+                    "new properties": {}
+                },
+                {
+                    "guid": "eda04ee7-0cbb-46fd-97fc-0018537e395c",
+                    "id": "3",
+                    "new list": [],
+                    "new properties": {}
+                },
+                {
+                    "guid": "eed94aff-89d3-444d-ba2c-7739d41a3864",
+                    "id": "4",
+                    "new list": [],
+                    "new properties": {}
+                },
+                {
+                    "guid": "a7219325-b8cb-4018-bfd9-73958fec95f7",
+                    "id": "5",
+                    "new list": [],
+                    "new properties": {}
+                },
+                {
+                    "guid": "eba5cea1-1939-4cb7-8c50-df98441dc247",
+                    "id": "6",
+                    "new list": [],
+                    "new properties": {}
+                },
+                {
+                    "guid": "06685194-9330-426c-8360-be8f716a44db",
+                    "id": "7",
+                    "new list": [],
+                    "new properties": {}
+                },
+                {
+                    "guid": "4e511e1f-65ad-42fa-a430-207f9921f543",
+                    "id": "8",
+                    "new list": [],
+                    "new properties": {}
+                },
+                {
+                    "guid": "f582d627-a1f6-491b-9ad6-c7fedb71f6bb",
+                    "id": "9",
+                    "new list": [],
+                    "new properties": {}
+                },
+                {
+                    "guid": "0611d926-0d43-451e-8656-342446a39d53",
+                    "id": "10",
+                    "new list": [],
+                    "new properties": {}
+                },
+                {
+                    "guid": "c27dd9e8-ba40-4402-946d-b2d0fbfe7974",
+                    "id": "11",
+                    "new list": [],
+                    "new properties": {}
+                }
+            ],
+            "hidden": false,
+            "isProps": false,
+            "configurable": {
+                "name": "text",
+                "description": "text",
+                "displayColumn": "columnSelect@name",
+                "columnSelect@name@displayColumn": {
+                    "allowedTypes": [
+                        "int",
+                        "float",
+                        "text",
+                        "longtext"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "new list",
+            "description": "list@8044f2f7-60de-4190-b754-25fc127c1ce7",
+            "displayColumn": "id",
+            "guid": "57d05655-d4da-4256-82aa-a4685ee4d048",
+            "columns": [
+                {
+                    "typeStr": "text",
+                    "guid": "07c4caf7-c5d4-4fe8-9c20-b19569f0eba9",
+                    "name": "newText",
+                    "description": "text field",
+                    "defaultValue": "",
+                    "iconName": "newText",
+                    "configurable": {
+                        "name": "text",
+                        "description": "text",
+                        "defaultValue": "text"
+                    }
+                }
+            ],
+            "lines": [],
+            "hidden": true,
+            "isProps": false,
+            "parentSheetGUID": "8044f2f7-60de-4190-b754-25fc127c1ce7",
+            "columnGUID": "80d76d57-a29a-48a4-92ca-bd9e6f2ebf50"
+        },
+        {
+            "name": "new properties",
+            "description": "props@8044f2f7-60de-4190-b754-25fc127c1ce7",
+            "displayColumn": "id",
+            "guid": "cb75d68c-5e77-4a2a-a676-695bb4f45853",
+            "columns": [
+                {
+                    "typeStr": "int",
+                    "guid": "1676064e-807a-46b1-95c3-329ebfab252b",
+                    "description": "int field",
+                    "name": "suii",
+                    "min": -10000,
+                    "max": 100000,
+                    "defaultValue": 0,
+                    "iconName": "newInt",
+                    "configurable": {
+                        "name": "text",
+                        "description": "text",
+                        "min": "int",
+                        "max": "int",
+                        "defaultValue": "int"
+                    }
+                }
+            ],
+            "lines": [],
+            "hidden": true,
+            "isProps": true,
+            "parentSheetGUID": "8044f2f7-60de-4190-b754-25fc127c1ce7",
+            "columnGUID": "2582f2cd-5df8-4389-98c0-df20d666df05"
+        }
+    ]
+}

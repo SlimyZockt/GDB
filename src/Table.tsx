@@ -1,57 +1,37 @@
-import {
-	For,
-	Index,
-	JSX,
-	Show,
-	createEffect,
-	createSignal,
-	splitProps,
-	untrack,
-} from 'solid-js';
+import { For, JSX, Show, untrack } from 'solid-js';
 
 import {
 	DataTypes,
 	TypeData,
 	type Sheet,
 	Row,
-	sheets,
-	setSheets,
 	SheetTypes,
 	Column,
 } from './stores/data';
 
+import { ColumnCreator } from './ColumnCreator';
 import { Dynamic } from 'solid-js/web';
+
+
+export function extendDataOnColumnChange(sheet: Sheet, columns: Column[]): Row[] {
+	return sheet.rows.map((r) => {
+		let col_keys = columns.map((c) => c.uuid);
+		for (let key of col_keys) {
+			if (key in r.data === false) {
+				r.data[key] = undefined;
+			}
+		}
+		return {
+			...r,
+		};
+	});
+};
+
 
 export function Table(props: {
 	sheet: Sheet;
 	onSheetChanged: (sheet: Sheet) => void;
 }) {
-	const [data, setData] = createSignal(props.sheet);
-
-	createEffect(() => {
-		extendDataOnColumnChange(data().columns);
-		props.onSheetChanged(data());
-	});
-
-	const extendDataOnColumnChange = (columns: Column[]) => {
-		setData(data => {
-			data.rows.map((r) => {
-				let col_keys = columns.map((c) => c.uuid);
-
-				for (let key of col_keys) {
-					if (key in r.data === false) {
-						r.data[key] = undefined;
-					}
-				}
-
-				return {
-					...r,
-				};
-			});
-			return data;
-		}
-		);
-	};
 
 	const getColumnType = (columns: Column[], columns_key: string) => {
 		let col = columns.find((c) => c.uuid == columns_key);
@@ -60,65 +40,101 @@ export function Table(props: {
 	};
 
 	const deleteRow = (id: number) => {
-		let newRow = data()
-			.rows.filter((row) => row.id !== id)
+		let newRows = props.sheet.rows
+			.filter((row) => row.id !== id)
 			.map((row, i) => ({ ...row, id: i }));
-		// data().rows = newRow;
-		// let new_sheet = sheets.filter((s) => s.uuid !== data()?.uuid);
-		// setSheets([...new_sheet, data()]);
-		data().rows = newRow;
+
+		props.onSheetChanged({ ...props.sheet, rows: newRows });
 	};
 
-	const updateRows = (newRows: Row[]) =>
-		setData((sheet) => ({ ...sheet, rows: newRows }));
+	const updateRows = (newRows: Row[]) => {
+		props.onSheetChanged({ ...props.sheet, rows: newRows });
+	};
+
+	const updateSettings = (
+		key: string,
+		settings: SheetTypes[keyof SheetTypes]['_settingType']
+	) =>
+
+
+		props.onSheetChanged({
+			...props.sheet,
+			columns: props.sheet.columns.map((col) => {
+				if (col.uuid === key) {
+					col.settingData = settings;
+				}
+				return col;
+			}),
+		});
 
 	return (
 		<div class="min-h-full grid grid-rows-[1fr_auto]">
 			<div class=" overflow-x-auto">
-				<table class="table w-full table-zebra">
+				<table class="table table-zebra">
 					<thead>
-						<tr class="hover felx">
-							<th class="w-0">
-								<label> id </label>
+						<tr>
+							<th colSpan={1} class="whitespace-nowrap w-[0.1%]">
+								ID
 							</th>
-							<For each={data().columns}>
+							<For each={props.sheet.columns}>
 								{(c) => (
-									<th>
+									<th colSpan={1}>
 										<TableHeader>{c.name}</TableHeader>
 									</th>
 								)}
 							</For>
-							<Show when={data().rows.length > 0 === true}>
-								<th class="w-0" />
+							<Show when={props.sheet.rows.length > 0 === true}>
+								<th
+									colSpan={1}
+									class="whitespace-nowrap w-[0.1%]"
+								></th>
 							</Show>
 						</tr>
 					</thead>
 					<tbody>
-						<For each={data().rows}>
+						<For each={props.sheet.rows}>
 							{(row, id) => (
 								<tr>
-									<td>
+									<th>
 										<p>{id()}</p>
-									</td>
+									</th>
 									<For each={Object.keys(row.data)}>
 										{(key) => (
 											<td>
-												<Dynamic
-													component={
+												<Cell
+													index={id()}
+													typeData={
 														TypeData[
 															getColumnType(
-																data().columns,
+																props.sheet
+																	.columns,
 																key
 															)
-														].getInputField
+														]
 													}
-													settings={
-														data().columns.find(
-															(c) => c.uuid == key
-														)?.settingData
-													}
-													row={row}
-													colUUID={key}
+													data={props.sheet}
+													key={key}
+													onValueChanged={(
+														newValue
+													) => {
+														let newRows =
+															props.sheet.rows;
+														newRows[id()].data[
+															key
+														] = newValue;
+														props.onSheetChanged({
+															...props.sheet,
+															rows: newRows,
+														});
+													}}
+													onSettingsChanged={(
+														settings
+													) => {
+														updateSettings(
+															key,
+															settings
+														);
+													}}
 												/>
 											</td>
 										)}
@@ -137,24 +153,36 @@ export function Table(props: {
 					</tbody>
 				</table>
 			</div>
-			<div class="m-1 inline-grid grid-cols-[1fr_auto_auto_auto_1fr] gap-3 pb-3">
+			<div class="m-1 inline-grid grid-cols-[1fr_auto_auto_auto_auto_1fr] gap-3">
 				<br />
+				<ColumnCreator
+					columns={props.sheet.columns}
+					onColumnChanged={(c) => {
+						console.log(c);
+
+						props.onSheetChanged({
+							...props.sheet,
+							columns: c,
+							rows: extendDataOnColumnChange(props.sheet, c),
+						});
+					}}
+				/>
 				<CreateRowBtn
-					sheet={data()}
+					sheet={props.sheet}
 					count={1}
 					onRowCreated={updateRows}
 				>
 					Add Row
 				</CreateRowBtn>
 				<CreateRowBtn
-					sheet={data()}
+					sheet={props.sheet}
 					count={5}
 					onRowCreated={updateRows}
 				>
 					Add 5 Rows
 				</CreateRowBtn>
 				<CreateRowBtn
-					sheet={data()}
+					sheet={props.sheet}
 					count={10}
 					onRowCreated={updateRows}
 				>
@@ -162,7 +190,6 @@ export function Table(props: {
 				</CreateRowBtn>
 				<br />
 			</div>
-			<div>{JSON.stringify(data().rows)}</div>
 		</div>
 	);
 }
@@ -173,13 +200,12 @@ function TableHeader({
 	children: string | JSX.Element | JSX.Element[];
 }) {
 	return (
-		<label
-			for="column-creation-popup"
+		<button
 			class="btn min-w-max w-full flex justify-between"
 		>
 			<p>{children}</p>
 			<p class="px-1">⚙️</p>
-		</label>
+		</button>
 	);
 }
 
@@ -222,5 +248,38 @@ function CreateRowBtn(props: {
 		<button class="btn" onClick={addRow}>
 			{props.children}
 		</button>
+	);
+}
+
+function Cell(props: {
+	typeData: SheetTypes[keyof SheetTypes];
+	index: number;
+	data: Sheet;
+	key: string;
+	onValueChanged: (value: SheetTypes[keyof SheetTypes]['_valueType']) => void;
+	onSettingsChanged: (
+		value: SheetTypes[keyof SheetTypes]['_settingType']
+	) => void;
+}) {
+	const currentValue = props.data.rows[props.index].data[props.key];
+
+	const initValue =
+		currentValue === undefined ? props.typeData.defaultValue : currentValue;
+	console.log(
+		props.data.columns.find((c) => c.uuid == props.key)?.settingData
+	);
+
+	return (
+		<Dynamic
+			component={props.typeData.getInputField}
+			settings={
+				props.data.columns.find((c) => c.uuid == props.key)
+					?.settingData as any
+			}
+			value={initValue}
+			sheet={props.data}
+			onSettingsChanged={props.onSettingsChanged}
+			onValueChanged={props.onValueChanged}
+		/>
 	);
 }
