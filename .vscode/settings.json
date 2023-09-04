@@ -15,5 +15,8 @@
     },
     "cSpell.words": [
         "felx"
-    ]
+    ],
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    }
 }

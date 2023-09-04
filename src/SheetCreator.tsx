@@ -2,7 +2,7 @@ import { createSignal, untrack } from 'solid-js';
 
 import { sheets, setSheets, Sheet } from './stores/data';
 
-export function SheetCreator(props: { sheet: Sheet; onSheetCreated: (sheet: Sheet) => void}) {
+export function SheetCreator(props: { sheet: Sheet; onSheetCreated: (sheet: Sheet) => void, btnClass: string, btnText: string}) {
 	const [sheetName, setSheetName] = createSignal('');
 	const [nameIsValid, setNameIsValid] = createSignal(false);
 	const [dialogRef, setDialogRef] = createSignal<HTMLDialogElement>();
@@ -41,12 +41,12 @@ export function SheetCreator(props: { sheet: Sheet; onSheetCreated: (sheet: Shee
 	};
 
 	return (
-		<>
+		<div class="p-0 flex ">
 			<button
 				onClick={() => dialogRef()?.showModal()}
-				class="btn btn-outline btn-accent"
+				class={`${props.btnClass} flex-1 `}
 			>
-				new Sheet
+				{props.btnText}
 			</button>
 			<dialog class="modal" ref={setDialogRef}>
 				<form method="dialog" class="modal-box">
@@ -91,6 +91,6 @@ export function SheetCreator(props: { sheet: Sheet; onSheetCreated: (sheet: Shee
 					<button>close</button>
 				</form>
 			</dialog>
-		</>
+		</div>
 	);
 }
