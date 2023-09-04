@@ -487,7 +487,11 @@ export const TypeData: SheetTypes = {
 					class="select select-bordered select-ghost min-w-full bg-base-200"
 					onInput={(v) => props.onValueChanged(v.currentTarget.value)}
 				>
-					<For each={['']}>
+					<For
+						each={[''].concat(
+							props.sheet.rows.map((r)=> r.id.toString())
+						)}
+					>
 						{(v) => (
 							<option selected={v === props.value}> {v} </option>
 						)}
@@ -499,17 +503,12 @@ export const TypeData: SheetTypes = {
 	},
 	SheetReference: {
 		getInputField: (props) => {
-			let settings =
-				props.settings === undefined
-					? {}
-					: unwrapSetting(props.settings);
-
 			return (
 				<select
 					class="select select-bordered select-ghost min-w-full bg-base-200"
 					onInput={(v) => props.onValueChanged(v.currentTarget.value)}
 				>
-					<For each={['']}>
+					<For each={[""].concat(sheets.map((s) => s.id))}>
 						{(v) => (
 							<option selected={v === props.value}> {v} </option>
 						)}

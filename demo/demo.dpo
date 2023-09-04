@@ -31,6 +31,37 @@
                         "name": "text",
                         "description": "text"
                     }
+                },
+                {
+                    "typeStr": "sheetReference",
+                    "guid": "9fd87a32-f8ba-4061-b267-695b1aec6d57",
+                    "name": "newSheetReference",
+                    "description": "new sheet reference field",
+                    "defaultValue": "",
+                    "iconName": "newSheetLink",
+                    "configurable": {
+                        "name": "text",
+                        "description": "text",
+                        "defaultValue": "sheetSelect",
+                        "sheetSelect@defaultValue": {
+                            "allowEmpty": true
+                        }
+                    }
+                },
+                {
+                    "typeStr": "lineReference",
+                    "guid": "c7a0c3ff-19da-4ecf-a34a-cfefd8810b57",
+                    "name": "newLineReference",
+                    "description": "new line reference field",
+                    "sheet": "8044f2f7-60de-4190-b754-25fc127c1ce7",
+                    "defaultValue": "",
+                    "iconName": "newLineLink",
+                    "configurable": {
+                        "name": "text",
+                        "description": "text",
+                        "sheet": "sheetSelect",
+                        "defaultValue": "lineSelect@sheet"
+                    }
                 }
             ],
             "lines": [
@@ -47,7 +78,9 @@
                     "new properties": {
                         "guid": "5c4091f8-366e-4a5b-b2b3-a2d5fec998e2",
                         "suii": 234444444
-                    }
+                    },
+                    "newSheetReference": "",
+                    "newLineReference": "f582d627-a1f6-491b-9ad6-c7fedb71f6bb"
                 },
                 {
                     "guid": "cd6b840a-3e0b-4580-8caa-f822404c8ad1",
@@ -62,67 +95,89 @@
                     "new properties": {
                         "guid": "48478a64-3d43-4dd9-bc57-a35f1df8eff6",
                         "suii": 0
-                    }
+                    },
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "a84e857d-c55c-4b13-b3d9-10e3e944981c",
                     "id": "2",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "eda04ee7-0cbb-46fd-97fc-0018537e395c",
                     "id": "3",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "eed94aff-89d3-444d-ba2c-7739d41a3864",
                     "id": "4",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "a7219325-b8cb-4018-bfd9-73958fec95f7",
                     "id": "5",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "eba5cea1-1939-4cb7-8c50-df98441dc247",
                     "id": "6",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "06685194-9330-426c-8360-be8f716a44db",
                     "id": "7",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "4e511e1f-65ad-42fa-a430-207f9921f543",
                     "id": "8",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "f582d627-a1f6-491b-9ad6-c7fedb71f6bb",
                     "id": "9",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "0611d926-0d43-451e-8656-342446a39d53",
                     "id": "10",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 },
                 {
                     "guid": "c27dd9e8-ba40-4402-946d-b2d0fbfe7974",
                     "id": "11",
                     "new list": [],
-                    "new properties": {}
+                    "new properties": {},
+                    "newSheetReference": "",
+                    "newLineReference": ""
                 }
             ],
             "hidden": false,
@@ -196,6 +251,42 @@
             "isProps": true,
             "parentSheetGUID": "8044f2f7-60de-4190-b754-25fc127c1ce7",
             "columnGUID": "2582f2cd-5df8-4389-98c0-df20d666df05"
+        },
+        {
+            "name": "huy321",
+            "description": "description of what the sheet is",
+            "displayColumn": "id",
+            "guid": "a002d64e-f333-4cb5-8d29-ae9e2eddd47c",
+            "columns": [],
+            "lines": [
+                {
+                    "guid": "8b59dec8-feca-4389-8a91-a02ce1fad841",
+                    "id": "0"
+                },
+                {
+                    "guid": "0c27292a-4c7a-4674-b0f8-1affff116999",
+                    "id": "1"
+                },
+                {
+                    "guid": "2fbfdd6f-2682-45d8-8aaa-2a42313745d7",
+                    "id": "2"
+                }
+            ],
+            "hidden": false,
+            "isProps": false,
+            "configurable": {
+                "name": "text",
+                "description": "text",
+                "displayColumn": "columnSelect@name",
+                "columnSelect@name@displayColumn": {
+                    "allowedTypes": [
+                        "int",
+                        "float",
+                        "text",
+                        "longtext"
+                    ]
+                }
+            }
         }
     ]
 }
