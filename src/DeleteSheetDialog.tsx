@@ -1,5 +1,5 @@
 import { Component, createSignal } from 'solid-js';
-import { Table, setSheets, sheets } from './stores/data';
+import { Sheet, setSheets, sheets } from './stores/data';
 
 export function DeleteSheetDialog(props: {
 	sheetUUID: string;
