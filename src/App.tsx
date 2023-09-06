@@ -164,9 +164,6 @@ function App() {
 		const SAVE_DATA = createSaveData(sheet());
 		const JSON_DATA = JSON.stringify(SAVE_DATA);
 
-		setOldHash(SAVE_DATA.hashCode);
-		setCurrentHash(SAVE_DATA.hashCode);
-
 		if (platform === 'Web') {
 			let file = new File([JSON_DATA], 'data.gdb', {
 				type: 'application/json',
@@ -178,6 +175,10 @@ function App() {
 			link.download = 'data';
 			link.href = url;
 			link.click();
+
+			setOldHash(SAVE_DATA.hashCode);
+			setCurrentHash(SAVE_DATA.hashCode);
+			return;
 		}
 
 		if (platform === 'Tauri') {
@@ -191,10 +192,13 @@ function App() {
 				],
 			});
 
-			if (typeof filePath !== 'string') return;
+			if (filePath === null) return;
 			setSheetPath(filePath);
 
+			setOldHash(SAVE_DATA.hashCode);
+			setCurrentHash(SAVE_DATA.hashCode);
 			await fs.writeTextFile(filePath, JSON_DATA);
+			return;
 		}
 	};
 
@@ -349,7 +353,7 @@ function App() {
 			</div>
 			<footer class="footer items-center p-3  bg-neutral text-neutral-content">
 				<ul class="flex w-full">
-					<li class='flex-1'>
+					<li class="flex-1">
 						<ul class="flex w-full gap-2">
 							<li>
 								<SheetCreator
@@ -375,11 +379,10 @@ function App() {
 					</li>
 					<li>
 						<Show when={sheet().id !== ''}>
-							<JSONPreview sheet={sheet()}/>
+							<JSONPreview sheet={sheet()} />
 						</Show>
 					</li>
 				</ul>
-
 			</footer>
 		</div>
 	);

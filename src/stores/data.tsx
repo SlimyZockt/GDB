@@ -519,7 +519,9 @@ export const TypeData: SheetTypes = {
 							props.onSettingsChanged({
 								Filenames: [
 									...props.settingData.Filenames,
-									`.${props.settingData.Filenames.length + 1}`,
+									`.${
+										props.settingData.Filenames.length + 1
+									}`,
 								],
 							});
 
