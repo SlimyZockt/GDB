@@ -1,6 +1,6 @@
 import { For } from 'solid-js';
 import {
-	Sheet,
+	Table,
 	sheets,
 } from './stores/data';
 

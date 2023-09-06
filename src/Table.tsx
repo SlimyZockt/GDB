@@ -1,4 +1,4 @@
-import { For, JSX, Show, untrack } from 'solid-js';
+import { Component, For, JSX, Show, createEffect, untrack } from 'solid-js';
 
 import {
 	DataTypes,
@@ -11,9 +11,12 @@ import {
 
 import { ColumnCreator } from './ColumnCreator';
 import { Dynamic } from 'solid-js/web';
+import { ColumnConfigurator } from './ColumnConfigurator';
 
-
-export function extendDataOnColumnChange(sheet: Sheet, columns: Column[]): Row[] {
+export function extendDataOnColumnChange(
+	sheet: Sheet,
+	columns: Column[]
+): Row[] {
 	return sheet.rows.map((r) => {
 		let col_keys = columns.map((c) => c.uuid);
 		for (let key of col_keys) {
@@ -25,14 +28,12 @@ export function extendDataOnColumnChange(sheet: Sheet, columns: Column[]): Row[]
 			...r,
 		};
 	});
-};
-
+}
 
 export function Table(props: {
 	sheet: Sheet;
 	onSheetChanged: (sheet: Sheet) => void;
 }) {
-
 	const getColumnType = (columns: Column[], columns_key: string) => {
 		let col = columns.find((c) => c.uuid == columns_key);
 		if (col === undefined) return 'Int';
@@ -55,8 +56,6 @@ export function Table(props: {
 		key: string,
 		settings: SheetTypes[keyof SheetTypes]['_settingType']
 	) =>
-
-
 		props.onSheetChanged({
 			...props.sheet,
 			columns: props.sheet.columns.map((col) => {
@@ -77,9 +76,29 @@ export function Table(props: {
 								ID
 							</th>
 							<For each={props.sheet.columns}>
-								{(c) => (
+								{(c, id) => (
 									<th colSpan={1}>
-										<TableHeader>{c.name}</TableHeader>
+										<ColumnConfigurator
+											btnClass="btn min-w-max w-full flex justify-between"
+											column={c}
+											onSettingChanged={(newSettings) => {
+												let col = props.sheet.columns;
+												col[id()].settingData =
+													newSettings;
+
+												props.onSheetChanged({
+													...props.sheet,
+													columns: col,
+												});
+											}}
+										>
+											<div class="flex min-w-full">
+												<p class="flex-1 text-left">
+													{c.name}
+												</p>
+												<p class="float-right">⚙️</p>
+											</div>
+										</ColumnConfigurator>
 									</th>
 								)}
 							</For>
@@ -114,6 +133,11 @@ export function Table(props: {
 													}
 													data={props.sheet}
 													key={key}
+													settings={
+														props.sheet.columns.find(
+															(c) => c.uuid == key
+														)?.settingData as any
+													}
 													onValueChanged={(
 														newValue
 													) => {
@@ -194,21 +218,6 @@ export function Table(props: {
 	);
 }
 
-function TableHeader({
-	children,
-}: {
-	children: string | JSX.Element | JSX.Element[];
-}) {
-	return (
-		<button
-			class="btn min-w-max w-full flex justify-between"
-		>
-			<p>{children}</p>
-			<p class="px-1">⚙️</p>
-		</button>
-	);
-}
-
 function CreateRowBtn(props: {
 	sheet: Sheet;
 	onRowCreated: (newRows: Row[]) => void;
@@ -256,30 +265,31 @@ function Cell(props: {
 	index: number;
 	data: Sheet;
 	key: string;
+	settings: SheetTypes[keyof SheetTypes]['_settingType'];
 	onValueChanged: (value: SheetTypes[keyof SheetTypes]['_valueType']) => void;
 	onSettingsChanged: (
 		value: SheetTypes[keyof SheetTypes]['_settingType']
 	) => void;
 }) {
-	const currentValue = props.data.rows[props.index].data[props.key];
-
-	const initValue =
-		currentValue === undefined ? props.typeData.defaultValue : currentValue;
-	console.log(
-		props.data.columns.find((c) => c.uuid == props.key)?.settingData
-	);
-
 	return (
-		<Dynamic
-			component={props.typeData.getInputField}
-			settings={
-				props.data.columns.find((c) => c.uuid == props.key)
-					?.settingData as any
-			}
-			value={initValue}
-			sheet={props.data}
-			onSettingsChanged={props.onSettingsChanged}
-			onValueChanged={props.onValueChanged}
-		/>
+		<div>
+			<Dynamic
+				component={props.typeData.getInputField}
+				settings={props.settings as any}
+				value={
+					props.data.rows[props.index].data[props.key] === undefined
+						? props.typeData.defaultValue
+						: (props.data.rows[props.index].data[
+								props.key
+						  ] as Exclude<
+								undefined,
+								SheetTypes[keyof SheetTypes]['_valueType']
+						  >)
+				}
+				sheet={props.data}
+				onSettingsChanged={props.onSettingsChanged}
+				onValueChanged={props.onValueChanged}
+			/>
+		</div>
 	);
 }

@@ -26,25 +26,25 @@ export function ColumnCreator(props: {
 		return props.columns.find((c) => c.name === name) === undefined;
 	};
 
+
+	const updateSettings = (v: SettingsData | 'Error') => {
+		if (v === 'Error' || v === undefined || Object.keys(v).length === 0) {
+			setIsValid('Error');
+		} else {
+			setIsValid('Valid');
+			setSetting(v);
+		}
+	};
+
+
+
 	const getSettingJSX = (props: {
 		type: keyof SheetTypes;
 		onSettingsChanged: (
 			settings: SheetTypes[keyof SheetTypes]['_settingType']
 		) => void;
 	}) => {
-		const updateSettings = (v: SettingsData | 'Error') => {
-			if (
-				v === 'Error' ||
-				v === undefined ||
-				Object.keys(v).length === 0
-			) {
-				setIsValid('Error');
-				props.onSettingsChanged(undefined);
-			} else {
-				setIsValid('Valid');
-				props.onSettingsChanged(v);
-			}
-		};
+		
 
 		return (
 			<Show
@@ -53,8 +53,7 @@ export function ColumnCreator(props: {
 					TypeData[props.type].getSettingsField !== undefined
 				}
 			>
-				<h2 class="font-bold">Settings</h2>
-				<br />
+
 				<Dynamic
 					component={TypeData[props.type].getSettingsField}
 					settingData={undefined}
@@ -89,7 +88,6 @@ export function ColumnCreator(props: {
 			settingData: SETTING,
 		};
 
-		// setColumnName('');
 		props.onColumnChanged([...props.columns, newColumn]);
 	};
 
@@ -102,15 +100,12 @@ export function ColumnCreator(props: {
 				new column
 			</button>
 			<dialog class="modal" ref={setDialogRef}>
-				<form method="dialog" class="modal-box">
-					<input
-						type="checkbox"
-						id="column-creation-popup"
-						class="modal-toggle"
-					/>
-					<button class="btn btn-sm btn-circle absolute right-2 top-2">
-						✕
-					</button>
+				<div class="modal-box">
+					<form method="dialog">
+						<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+							✕
+						</button>
+					</form>
 					<h3 class="font-bold text-lg">Column Creation</h3>
 					<br />
 					<label class="input-group" for="column-name">
@@ -149,31 +144,35 @@ export function ColumnCreator(props: {
 					</label>
 					<br />
 					<div>
+						<h2 class="font-bold">Settings</h2>
+						<br />
 						<Dynamic
-							component={getSettingJSX}
-							type={type()}
-							onSettingsChanged={setSetting}
+							component={TypeData[type()].getSettingsField}
+							settingData={setting()}
+							onSettingsChanged={updateSettings}
 						/>
 					</div>
 					<br />
 					<div class="modal-action">
-						<button
-							class={`btn ${
-								verifyName(columnName()) &&
-								isValid() === 'Valid'
-									? 'btn-primary'
-									: 'btn-disabled'
-							}`}
-							disabled={
-								!verifyName(columnName()) &&
-								isValid() === 'Error'
-							}
-							onClick={createColumn}
-						>
-							Create Column
-						</button>
+						<form method="dialog">
+							<button
+								class={`btn ${
+									verifyName(columnName()) &&
+									isValid() === 'Valid'
+										? 'btn-primary'
+										: 'btn-disabled'
+								}`}
+								disabled={
+									!verifyName(columnName()) &&
+									isValid() === 'Error'
+								}
+								onClick={createColumn}
+							>
+								Create Column
+							</button>
+						</form>
 					</div>
-				</form>
+				</div>
 				<form method="dialog" class="modal-backdrop">
 					<button>close</button>
 				</form>

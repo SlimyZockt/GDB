@@ -14,6 +14,7 @@ import { SheetCreator } from './SheetCreator';
 import { DeleteSheetDialog } from './DeleteSheetDialog';
 import './App';
 import { dialog, fs, globalShortcut } from '@tauri-apps/api';
+import { JSONPreview } from './JSONPreview';
 
 type SaveData = {
 	sheets: Sheet[];
@@ -321,7 +322,7 @@ function App() {
 				class={`${
 					sheet().uuid.length === 0
 						? 'hero bg-base'
-						: 'grid grid-rows-[auto_1fr]'
+						: 'grid grid-rows-[auto_1fr] pb-2'
 				}`}
 			>
 				{sheet().uuid.length > 0 ? (
@@ -339,7 +340,6 @@ function App() {
 								);
 							}}
 						/>
-						<div>{JSON.stringify(sheet())}</div>
 					</>
 				) : (
 					<div class="hero-content text-center">
@@ -347,28 +347,39 @@ function App() {
 					</div>
 				)}
 			</div>
-			<footer class="footer items-center p-4 bg-neutral text-neutral-content">
-				<ul class="flex justify-center w-full">
-					<li>
-						<SheetCreator
-							onSheetCreated={(s) => {
-								switchSheet(s.uuid);
-							}}
-							btnClass="btn btn-sm btn-accent"
-							btnText="new Sheet"
-							sheet={sheet()}
-						/>
+			<footer class="footer items-center p-3  bg-neutral text-neutral-content">
+				<ul class="flex w-full">
+					<li class='flex-1'>
+						<ul class="flex w-full gap-2">
+							<li>
+								<SheetCreator
+									onSheetCreated={(s) => {
+										switchSheet(s.uuid);
+									}}
+									btnClass="btn btn-sm btn-primary"
+									btnText="new Sheet"
+									sheet={sheet()}
+								/>
+							</li>
+							<Show when={sheet().id !== ''}>
+								<li class="">
+									<DeleteSheetDialog
+										sheetUUID={sheet().uuid}
+										sheetId={sheet().id}
+										onSheetDeleted={setSheet}
+									/>
+								</li>
+								<li class="flex min-w-max"></li>
+							</Show>
+						</ul>
 					</li>
-					<li class="">
+					<li>
 						<Show when={sheet().id !== ''}>
-							<DeleteSheetDialog
-								sheetUUID={sheet().uuid}
-								sheetId={sheet().id}
-								onSheetDeleted={setSheet}
-							/>
+							<JSONPreview sheet={sheet()}/>
 						</Show>
 					</li>
 				</ul>
+
 			</footer>
 		</div>
 	);

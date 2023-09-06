@@ -2,7 +2,12 @@ import { createSignal, untrack } from 'solid-js';
 
 import { sheets, setSheets, Sheet } from './stores/data';
 
-export function SheetCreator(props: { sheet: Sheet; onSheetCreated: (sheet: Sheet) => void, btnClass: string, btnText: string}) {
+export function SheetCreator(props: {
+	sheet: Sheet;
+	onSheetCreated: (sheet: Sheet) => void;
+	btnClass: string;
+	btnText: string;
+}) {
 	const [sheetName, setSheetName] = createSignal('');
 	const [nameIsValid, setNameIsValid] = createSignal(false);
 	const [dialogRef, setDialogRef] = createSignal<HTMLDialogElement>();
@@ -49,15 +54,12 @@ export function SheetCreator(props: { sheet: Sheet; onSheetCreated: (sheet: Shee
 				{props.btnText}
 			</button>
 			<dialog class="modal" ref={setDialogRef}>
-				<form method="dialog" class="modal-box">
-					<input
-						type="checkbox"
-						id="sheet-creation-popup"
-						class="modal-toggle"
-					/>
-					<button class="btn btn-sm btn-circle absolute right-2 top-2">
-						✕
-					</button>
+				<div class="modal-box">
+					<form method="dialog">
+						<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+							✕
+						</button>
+					</form>
 					<h3 class="font-bold text-lg">Sheet Creation</h3>
 					<br />
 					<label class="input-group" for="column-name">
@@ -77,16 +79,18 @@ export function SheetCreator(props: { sheet: Sheet; onSheetCreated: (sheet: Shee
 						/>
 					</label>
 					<br />
-					<button
-						class={`btn min-w-full ${
-							nameIsValid() ? 'btn-primary ' : 'btn-disabled'
-						}`}
-						disabled={!nameIsValid()}
-						onClick={createSheet}
-					>
-						Create
-					</button>
-				</form>
+					<form method="dialog">
+						<button
+							class={`btn min-w-full ${
+								nameIsValid() ? 'btn-primary ' : 'btn-disabled'
+							}`}
+							disabled={!nameIsValid()}
+							onClick={createSheet}
+						>
+							Create
+						</button>
+					</form>
+				</div>
 				<form method="dialog" class="modal-backdrop">
 					<button>close</button>
 				</form>

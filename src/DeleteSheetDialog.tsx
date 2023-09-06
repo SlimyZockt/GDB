@@ -1,5 +1,5 @@
 import { Component, createSignal } from 'solid-js';
-import { Sheet, setSheets, sheets } from './stores/data';
+import { Table, setSheets, sheets } from './stores/data';
 
 export function DeleteSheetDialog(props: {
 	sheetUUID: string;
@@ -17,41 +17,47 @@ export function DeleteSheetDialog(props: {
 				delete Sheet
 			</button>
 			<dialog class="modal" ref={setDialogRef}>
-				<form method="dialog" class="modal-box">
+				<div class="modal-box">
 					<h3 class="font-bold text-lg text-center">
 						Are sure you want to delete the Sheet '{props.sheetId}'?
 					</h3>
 					<br></br>
-					<div class="flex justify-center w-full gap-2">
-						<button class="btn btn-accent btn-sm">No</button>
-						<button
-							class="btn btn-error btn-sm"
-							onClick={() => {
-								setSheets((sheets) => [
-									...sheets.filter(
-										(sheet) =>
-											sheet.uuid !== props.sheetUUID
-									),
-								]);
-								console.log(sheets);
-								console.log(sheets[0]);
+					<div class="modal-action">
+						<form method="dialog" class="gap-2">
+							<div class="flex gap-2">
+								<button class="btn btn-sm btn-primary">
+									No
+								</button>
+								<button
+									class="btn btn-error btn-sm "
+									onClick={() => {
+										setSheets((sheets) => [
+											...sheets.filter(
+												(sheet) =>
+													sheet.uuid !==
+													props.sheetUUID
+											),
+										]);
 
-								props.onSheetDeleted(
-									sheets.length === 0
-										? {
-												uuid: '',
-												id: '',
-												rows: [],
-												columns: [],
-										  }
-										: sheets[0]
-								);
-							}}
-						>
-							Yes
-						</button>
+										props.onSheetDeleted(
+											sheets.length === 0
+												? {
+														uuid: '',
+														id: '',
+														rows: [],
+														columns: [],
+												  }
+												: sheets[0]
+										);
+									}}
+								>
+									Yes
+								</button>
+							</div>
+						</form>
 					</div>
-				</form>
+				</div>
+
 				<form method="dialog" class="modal-backdrop">
 					<button>close</button>
 				</form>
