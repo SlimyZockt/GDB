@@ -13,7 +13,7 @@ export function ColumnConfigurator(props: {
 	const [settings, setSettings] = createSignal(props.column.settingData);
 
 	return (
-		<div>
+		<div class='flex'>
 			<button
 				class={props.btnClass}
 				onClick={() => dialogRef()?.showModal()}

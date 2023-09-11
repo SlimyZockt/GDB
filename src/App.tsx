@@ -8,13 +8,14 @@ import {
 } from 'solid-js';
 import { Table } from './Table';
 import { setSheets, Sheet, sheets } from './stores/data';
-import { Footer } from './Footer';
 import { SheetDisplay } from './SheetDisplay';
 import { SheetCreator } from './SheetCreator';
 import { DeleteSheetDialog } from './DeleteSheetDialog';
 import './App';
 import { dialog, fs, globalShortcut } from '@tauri-apps/api';
 import { JSONPreview } from './JSONPreview';
+import { NewFileDialog } from './NewFileDialog';
+
 
 type SaveData = {
 	sheets: Sheet[];
@@ -38,23 +39,24 @@ function hashCode(str: string): number {
 function createSaveData(currentSheet: Sheet): SaveData {
 	let currentSheetUUID = currentSheet.uuid;
 
-	setSheets((sheets) => {
-		const ID = sheets.findIndex((s) => s.uuid === currentSheetUUID);
+	console.log(currentSheet);
+	
+	const ID = sheets.findIndex((s) => s.uuid === currentSheetUUID);
 
-		sheets[ID] = currentSheet;
-		return { ...sheets };
-	});
+	if (ID === -1) {
+		setSheets((sheets) => [...sheets, currentSheet])
+	} else {
+		setSheets(ID, currentSheet);
+	}
 
 	return {
 		selectedSheet: currentSheetUUID,
 		sheets: sheets,
-		hashCode: hashCode(JSON.stringify(currentSheet)),
+		hashCode: hashCode(JSON.stringify(sheets)),
 	};
 }
 
 function loadSaveData(saveData: SaveData): [Sheet, number] {
-	console.log(saveData);
-
 	let sheet = saveData.sheets.find((s) => s.uuid === saveData.selectedSheet);
 	setSheets(saveData.sheets);
 	if (sheet === undefined) {
@@ -100,10 +102,11 @@ function App() {
 			}
 			return newSheets;
 		});
+		setCurrentHash(hashCode(JSON.stringify(sheets)));
 	};
 
-	const openFile = async (platform: 'Web' | 'Tauri') => {
-		if (platform === 'Web') {
+	const openFile = async (isTauri: boolean) => {
+		if (!isTauri) {
 			var input = document.createElement('input');
 			input.type = 'file';
 			input.accept = '.gdb';
@@ -137,7 +140,7 @@ function App() {
 			input.click();
 		}
 
-		if (platform === 'Tauri') {
+		if (isTauri) {
 			const filePath = await dialog.open({
 				multiple: false,
 				filters: [
@@ -160,11 +163,14 @@ function App() {
 		}
 	};
 
-	const saveFile = async (platform: 'Web' | 'Tauri') => {
-		const SAVE_DATA = createSaveData(sheet());
+	const saveFile = async (isTauri: boolean, data: Sheet) => {
+		const SAVE_DATA = createSaveData(data);
 		const JSON_DATA = JSON.stringify(SAVE_DATA);
+		console.log(JSON_DATA);
 
-		if (platform === 'Web') {
+		
+
+		if (!isTauri) {
 			let file = new File([JSON_DATA], 'data.gdb', {
 				type: 'application/json',
 			});
@@ -174,6 +180,7 @@ function App() {
 			var link = document.createElement('a');
 			link.download = 'data';
 			link.href = url;
+			link.onclose = (e) => console.log(e);
 			link.click();
 
 			setOldHash(SAVE_DATA.hashCode);
@@ -181,7 +188,7 @@ function App() {
 			return;
 		}
 
-		if (platform === 'Tauri') {
+		if (isTauri) {
 			const filePath = await dialog.save({
 				defaultPath: './data.gdb',
 				filters: [
@@ -212,8 +219,28 @@ function App() {
 				let json = JSON.stringify(createSaveData(sheet()));
 				await fs.writeTextFile(sheetPath(), json);
 			} else {
-				await saveFile('Tauri');
+				await saveFile(true, sheet());
 			}
+		}
+	};
+
+	const newFile = async (savingOldFile: boolean, isTauri: boolean) => {
+		if (savingOldFile) {
+			await saveFile(isTauri, sheet());
+		}
+		setSheets([]);
+		setSheet({
+			uuid: '',
+			id: '',
+			rows: [],
+			columns: [],
+		});
+		const hash = hashCode(JSON.stringify(sheets))
+		setOldHash(hash);
+		setCurrentHash(hash);
+
+		if (isTauri) {
+			saveFile(isTauri, sheet());
 		}
 	};
 
@@ -241,24 +268,19 @@ function App() {
 								<ul class="dropdown-content menu p-2 shadow z-[1] bg-base-200 rounded-box gap-2">
 									<li>
 										<div class="flex p-0">
-											<button
-												class="btn btn-sm btn-neutral flex-1"
-												onClick={() =>
-													saveFile(
-														window.__TAURI__ ===
-															undefined
-															? 'Web'
-															: 'Tauri'
-													)
-												}
-											>
-												{window.__TAURI__ ===
-												undefined ? (
-													<>Download File</>
-												) : (
-													'New File'
-												)}
-											</button>
+												<NewFileDialog
+													hasSaved={
+														oldHash() ===
+														currentHash()
+													}
+													isTauri={
+														window.__TAURI__ !==
+														undefined
+													}
+													onConfirmedSavingFile={
+														newFile
+													}
+												/>
 										</div>
 									</li>
 									<li
@@ -278,19 +300,15 @@ function App() {
 												class="btn btn-sm btn-neutral flex-1"
 												onClick={() =>
 													saveFile(
-														window.__TAURI__ ===
-															undefined
-															? 'Web'
-															: 'Tauri'
+														window.__TAURI__ !==
+															undefined,
+														sheet()
 													)
 												}
 											>
-												{window.__TAURI__ ===
-												undefined ? (
-													<>Download File</>
-												) : (
-													'Save File'
-												)}
+												{window.__TAURI__ === undefined
+													? 'Download File'
+													: 'Save File'}
 											</button>
 										</div>
 									</li>
@@ -300,10 +318,8 @@ function App() {
 												class="btn btn-sm btn-neutral flex-1"
 												onClick={() =>
 													openFile(
-														window.__TAURI__ ===
+														window.__TAURI__ !==
 															undefined
-															? 'Web'
-															: 'Tauri'
 													)
 												}
 											>
@@ -370,7 +386,12 @@ function App() {
 									<DeleteSheetDialog
 										sheetUUID={sheet().uuid}
 										sheetId={sheet().id}
-										onSheetDeleted={setSheet}
+										onSheetDeleted={(sheets) => {
+											setSheet(sheets);
+											setCurrentHash(
+												hashCode(JSON.stringify(sheets))
+											);
+										}}
 									/>
 								</li>
 								<li class="flex min-w-max"></li>

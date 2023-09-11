@@ -26,7 +26,6 @@ export function ColumnCreator(props: {
 		return props.columns.find((c) => c.name === name) === undefined;
 	};
 
-
 	const updateSettings = (v: SettingsData | 'Error') => {
 		if (v === 'Error' || v === undefined || Object.keys(v).length === 0) {
 			setIsValid('Error');
@@ -36,16 +35,12 @@ export function ColumnCreator(props: {
 		}
 	};
 
-
-
 	const getSettingJSX = (props: {
 		type: keyof SheetTypes;
 		onSettingsChanged: (
 			settings: SheetTypes[keyof SheetTypes]['_settingType']
 		) => void;
 	}) => {
-		
-
 		return (
 			<Show
 				when={
@@ -53,7 +48,6 @@ export function ColumnCreator(props: {
 					TypeData[props.type].getSettingsField !== undefined
 				}
 			>
-
 				<Dynamic
 					component={TypeData[props.type].getSettingsField}
 					settingData={undefined}
@@ -144,13 +138,19 @@ export function ColumnCreator(props: {
 					</label>
 					<br />
 					<div>
-						<h2 class="font-bold">Settings</h2>
-						<br />
-						<Dynamic
-							component={TypeData[type()].getSettingsField}
-							settingData={setting()}
-							onSettingsChanged={updateSettings}
-						/>
+						<Show
+							when={
+								TypeData[type()].getSettingsField !== undefined
+							}
+						>
+							<h2 class="font-bold">Settings</h2>
+							<br />
+							<Dynamic
+								component={TypeData[type()].getSettingsField}
+								settingData={setting()}
+								onSettingsChanged={updateSettings}
+							/>
+						</Show>
 					</div>
 					<br />
 					<div class="modal-action">

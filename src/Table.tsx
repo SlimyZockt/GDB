@@ -18,10 +18,13 @@ export function extendDataOnColumnChange(
 	columns: Column[]
 ): Row[] {
 	return sheet.rows.map((r) => {
-		let col_keys = columns.map((c) => c.uuid);
-		for (let key of col_keys) {
-			if (key in r.data === false) {
-				r.data[key] = undefined;
+		let col_keys = columns.map((c) => [
+			c.uuid,
+			c.type,
+		] as const);
+		for (const [key, type]of col_keys) {
+			if (key in r.data === false || r.data[key] === undefined) {
+				r.data[key] = TypeData[type].defaultValue;
 			}
 		}
 		return {
@@ -67,115 +70,136 @@ export function Table(props: {
 		});
 
 	return (
-		<div class="min-h-full grid grid-rows-[1fr_auto]">
-			<div class=" overflow-x-auto">
-				<table class="table table-zebra">
-					<thead>
-						<tr>
-							<th colSpan={1} class="whitespace-nowrap w-[0.1%]">
-								ID
-							</th>
-							<For each={props.sheet.columns}>
-								{(c, id) => (
-									<th colSpan={1}>
-										<ColumnConfigurator
-											btnClass="btn min-w-max w-full flex justify-between"
-											column={c}
-											onSettingChanged={(newSettings) => {
-												let col = props.sheet.columns;
-												col[id()].settingData =
-													newSettings;
-
-												props.onSheetChanged({
-													...props.sheet,
-													columns: col,
-												});
-											}}
-										>
-											<div class="flex min-w-full">
-												<p class="flex-1 text-left">
-													{c.name}
-												</p>
-												<p class="float-right">⚙️</p>
-											</div>
-										</ColumnConfigurator>
+		<div class="min-h-full flex flex-col">
+			<div class="flex-1 relative">
+				<div class=" overflow-x-hidden absolute left-0 right-0 top-0 bottom-0">
+					<table class="table table-zebra ">
+						<thead>
+							<tr>
+								<Show when={props.sheet.columns.length > 0}>
+									<th
+										colSpan={1}
+										class="whitespace-nowrap w-[0.1%]"
+									>
+										ID
 									</th>
+
+								</Show>
+								<For each={props.sheet.columns}>
+									{(c, id) => (
+										<th>
+											<ColumnConfigurator
+												btnClass="btn flex-1"
+												column={c}
+												onSettingChanged={(
+													newSettings
+												) => {
+													let col =
+														props.sheet.columns;
+													col[id()].settingData =
+														newSettings;
+
+													props.onSheetChanged({
+														...props.sheet,
+														columns: col,
+													});
+												}}
+											>
+												<div class="flex min-w-full">
+													<p class="flex-1 text-left">
+														{c.name}
+													</p>
+													<p class="float-right">
+														⚙️
+													</p>
+												</div>
+											</ColumnConfigurator>
+										</th>
+									)}
+								</For>
+								<Show
+									when={props.sheet.rows.length > 0 === true}
+								>
+									<th
+										colSpan={1}
+										class="whitespace-nowrap w-[0.1%]"
+									></th>
+								</Show>
+							</tr>
+						</thead>
+						<tbody class="">
+							<For each={props.sheet.rows}>
+								{(row, id) => (
+									<tr>
+										<th>
+											<p>{id()}</p>
+										</th>
+										<For each={Object.keys(row.data)}>
+											{(key) => (
+												<td>
+													<Cell
+														index={id()}
+														typeData={
+															TypeData[
+																getColumnType(
+																	props.sheet
+																		.columns,
+																	key
+																)
+															]
+														}
+														data={props.sheet}
+														key={key}
+														settings={
+															props.sheet.columns.find(
+																(c) =>
+																	c.uuid ==
+																	key
+															)
+																?.settingData as any
+														}
+														onValueChanged={(
+															newValue
+														) => {
+															let newRows =
+																props.sheet
+																	.rows;
+															newRows[id()].data[
+																key
+															] = newValue;
+															props.onSheetChanged(
+																{
+																	...props.sheet,
+																	rows: newRows,
+																}
+															);
+														}}
+														onSettingsChanged={(
+															settings
+														) => {
+															updateSettings(
+																key,
+																settings
+															);
+														}}
+													/>
+												</td>
+											)}
+										</For>
+										<td>
+											<button
+												class="btn btn-error max-w-max"
+												onclick={() => deleteRow(id())}
+											>
+												X
+											</button>
+										</td>
+									</tr>
 								)}
 							</For>
-							<Show when={props.sheet.rows.length > 0 === true}>
-								<th
-									colSpan={1}
-									class="whitespace-nowrap w-[0.1%]"
-								></th>
-							</Show>
-						</tr>
-					</thead>
-					<tbody>
-						<For each={props.sheet.rows}>
-							{(row, id) => (
-								<tr>
-									<th>
-										<p>{id()}</p>
-									</th>
-									<For each={Object.keys(row.data)}>
-										{(key) => (
-											<td>
-												<Cell
-													index={id()}
-													typeData={
-														TypeData[
-															getColumnType(
-																props.sheet
-																	.columns,
-																key
-															)
-														]
-													}
-													data={props.sheet}
-													key={key}
-													settings={
-														props.sheet.columns.find(
-															(c) => c.uuid == key
-														)?.settingData as any
-													}
-													onValueChanged={(
-														newValue
-													) => {
-														let newRows =
-															props.sheet.rows;
-														newRows[id()].data[
-															key
-														] = newValue;
-														props.onSheetChanged({
-															...props.sheet,
-															rows: newRows,
-														});
-													}}
-													onSettingsChanged={(
-														settings
-													) => {
-														updateSettings(
-															key,
-															settings
-														);
-													}}
-												/>
-											</td>
-										)}
-									</For>
-									<td>
-										<button
-											class="btn btn-error max-w-max"
-											onclick={() => deleteRow(id())}
-										>
-											X
-										</button>
-									</td>
-								</tr>
-							)}
-						</For>
-					</tbody>
-				</table>
+						</tbody>
+					</table>
+				</div>
 			</div>
 			<div class="m-1 inline-grid grid-cols-[1fr_auto_auto_auto_auto_1fr] gap-3">
 				<br />
@@ -225,15 +249,15 @@ function CreateRowBtn(props: {
 	children: JSX.Element | string;
 }) {
 	const addRow = () => {
-		const NEW_ROW = props.sheet.columns.map((column) => {
-			return [column.uuid, undefined] as const;
+		const COLUMNS_DATA = props.sheet.columns.map((column) => {
+			return [column.uuid, TypeData[column.type].defaultValue] as const;
 		});
 
-		let new_rows: Row[] = [];
+		let newRows: Row[] = [];
 
-		if (NEW_ROW.length === 0) return;
+		if (COLUMNS_DATA.length === 0) return;
 
-		const data = Object.fromEntries(NEW_ROW);
+		const ROW_DATA = Object.fromEntries(COLUMNS_DATA);
 
 		for (let index = 0; index < props.count; index++) {
 			let newUuid = crypto.randomUUID();
@@ -243,14 +267,14 @@ function CreateRowBtn(props: {
 				newUuid = crypto.randomUUID();
 			}
 			const row: Row = {
-				id: props.sheet.rows.length + new_rows.length,
+				id: props.sheet.rows.length + newRows.length,
 				uuid: newUuid,
-				data: { ...data },
+				data: { ...ROW_DATA },
 			};
-			new_rows.push({ ...row });
+			newRows.push({ ...row });
 		}
 
-		props.onRowCreated([...props.sheet.rows, ...new_rows]);
+		props.onRowCreated([...props.sheet.rows, ...newRows]);
 	};
 
 	return (
