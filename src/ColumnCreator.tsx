@@ -105,6 +105,8 @@ export function ColumnCreator(props: {
 									e.currentTarget
 										.value as keyof typeof TypeData
 								);
+								setSetting(undefined)
+
 							}}
 						>
 							<For each={availableTypes}>

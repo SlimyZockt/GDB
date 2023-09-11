@@ -156,6 +156,7 @@ function App() {
 			let saveData: SaveData = JSON.parse(file);
 			let [sheet, hashCode] = loadSaveData(saveData);
 			setSheet(sheet);
+			setSheetPath(filePath);
 			setOldHash(hashCode);
 			setCurrentHash(hashCode);
 		}
@@ -187,36 +188,42 @@ function App() {
 		}
 
 		if (isTauri) {
-			const filePath = await dialog.save({
-				defaultPath: './data.gdb',
-				filters: [
-					{
-						name: 'GearDB Files',
-						extensions: ['gdb'],
-					},
-				],
-			});
 
-			if (filePath === null) return;
-			setSheetPath(filePath);
+			let fileExist: boolean
+
+			try {
+				let test = await fs.readTextFile(sheetPath());
+				fileExist = true
+
+			} catch {
+				fileExist = false				
+			}
+			if (!fileExist) {
+				const filePath = await dialog.save({
+					defaultPath: './data.gdb',
+					filters: [
+						{
+							name: 'GearDB Files',
+							extensions: ['gdb'],
+						},
+					],
+				});
+				if (filePath === null) return;
+				setSheetPath(filePath);
+			}
+
+
 
 			setOldHash(SAVE_DATA.hashCode);
 			setCurrentHash(SAVE_DATA.hashCode);
-			await fs.writeTextFile(filePath, JSON_DATA);
+			await fs.writeTextFile(sheetPath(), JSON_DATA);
 			return;
 		}
 	};
 
 	const keyPressed = async (event: { keyCode: string; ctrl: boolean }) => {
 		if (event.keyCode === 'KeyS' && event.ctrl === true) {
-			if (sheetPath() != '') {
-				console.log('saved');
-
-				let json = JSON.stringify(createSaveData(sheet()));
-				await fs.writeTextFile(sheetPath(), json);
-			} else {
-				await saveFile(true, sheet());
-			}
+			await saveFile(true, sheet());
 		}
 	};
 

@@ -365,12 +365,17 @@ export const TypeData: SheetTypes = {
 
 							if (props.onSettingsChanged === undefined) return;
 
-							if (props.settingData === undefined) {
+							if (
+								props.settingData === undefined ||
+								props.settingData.possibleValues === undefined
+							) {
 								props.onSettingsChanged({
 									possibleValues: [`newEnum1`],
 								});
 								return;
 							}
+
+							console.log(props.settingData.possibleValues);
 
 							props.onSettingsChanged({
 								possibleValues: [
@@ -381,6 +386,7 @@ export const TypeData: SheetTypes = {
 									}`,
 								],
 							});
+
 
 							if (!isValid(props.settingData.possibleValues)) {
 								props.onSettingsChanged('Error');
@@ -550,12 +556,15 @@ export const TypeData: SheetTypes = {
 						onClick={() => {
 							if (props.onSettingsChanged === undefined) return;
 
-							if (props.settingData === undefined) {
+							if (props.settingData === undefined || props.settingData.Filenames   === undefined) {
 								props.onSettingsChanged({
 									Filenames: [`.1`],
 								});
 								return;
 							}
+
+							console.log(props.settingData.Filenames);
+							
 
 							props.onSettingsChanged({
 								Filenames: [
