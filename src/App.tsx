@@ -264,19 +264,16 @@ function App() {
 								<ul class="dropdown-content menu p-2 shadow z-[1] bg-base-200 rounded-box gap-2">
 									<li>
 										<div class="flex p-0">
-												<NewFileDialog
-													hasSaved={
-														oldHash() ===
-														currentHash()
-													}
-													isTauri={
-														window.__TAURI__ !==
-														undefined
-													}
-													onConfirmedSavingFile={
-														newFile
-													}
-												/>
+											<NewFileDialog
+												hasSaved={
+													oldHash() === currentHash()
+												}
+												isTauri={
+													window.__TAURI__ !==
+													undefined
+												}
+												onConfirmedSavingFile={newFile}
+											/>
 										</div>
 									</li>
 									<li
@@ -330,7 +327,7 @@ function App() {
 					</ul>
 				</div>
 				<div class="navbar-center">
-					<h1 class="text-2xl text-center">GearDB</h1>
+					<h1 class="text-2xl text-center">GDB</h1>
 				</div>
 				<div class="navbar-end"></div>
 			</div>

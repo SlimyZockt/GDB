@@ -7,8 +7,8 @@
 		"withGlobalTauri": false
 	},
 	"package": {
-		"productName": "GearDB",
-		"version": "0.0.0"
+		"productName": "GDB",
+		"version": "1.0.0"
 	},
 	"tauri": {
 		"allowlist": {
@@ -47,7 +47,7 @@
 				"icons/icon.icns",
 				"icons/icon.ico"
 			],
-			"identifier": "com.tauri.dev",
+			"identifier": "cc.slimy.code",
 			"targets": "all"
 		},
 		"security": {
@@ -60,7 +60,7 @@
 			{
 				"fullscreen": false,
 				"resizable": true,
-				"title": "GearDB",
+				"title": "GDB",
 				"width": 800,
 				"height": 600
 			}
