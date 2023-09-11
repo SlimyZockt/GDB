@@ -18,11 +18,8 @@ export function extendDataOnColumnChange(
 	columns: Column[]
 ): Row[] {
 	return sheet.rows.map((r) => {
-		let col_keys = columns.map((c) => [
-			c.uuid,
-			c.type,
-		] as const);
-		for (const [key, type]of col_keys) {
+		let col_keys = columns.map((c) => [c.uuid, c.type] as const);
+		for (const [key, type] of col_keys) {
 			if (key in r.data === false || r.data[key] === undefined) {
 				r.data[key] = TypeData[type].defaultValue;
 			}
@@ -72,7 +69,7 @@ export function Table(props: {
 	return (
 		<div class="min-h-full flex flex-col">
 			<div class="flex-1 relative">
-				<div class=" overflow-x-hidden absolute left-0 right-0 top-0 bottom-0">
+				<div class=" overflow-x-auto absolute left-0 right-0 top-0 bottom-0">
 					<table class="table table-zebra ">
 						<thead>
 							<tr>
@@ -83,7 +80,6 @@ export function Table(props: {
 									>
 										ID
 									</th>
-
 								</Show>
 								<For each={props.sheet.columns}>
 									{(c, id) => (
@@ -91,6 +87,32 @@ export function Table(props: {
 											<ColumnConfigurator
 												btnClass="btn flex-1"
 												column={c}
+												onColumnDeleted={(cUUID) => {
+													let col =
+														props.sheet.columns.filter(
+															(c) =>
+																c.uuid !== cUUID
+														);
+													props.onSheetChanged({
+														...props.sheet,
+														columns: col,
+														rows:
+															col.length === 0
+																? []
+																: props.sheet.rows.map(
+																		(r) => {
+																			delete r
+																				.data[
+																				cUUID
+																			];
+
+																			return {
+																				...r,
+																			};
+																		}
+																  ),
+													});
+												}}
 												onSettingChanged={(
 													newSettings
 												) => {

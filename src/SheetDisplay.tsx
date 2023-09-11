@@ -1,8 +1,5 @@
 import { For } from 'solid-js';
-import {
-	Table,
-	sheets,
-} from './stores/data';
+import { Sheet, sheets } from './stores/data';
 
 export function SheetDisplay(
 	props: {

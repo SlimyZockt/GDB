@@ -35,28 +35,6 @@ export function ColumnCreator(props: {
 		}
 	};
 
-	const getSettingJSX = (props: {
-		type: keyof SheetTypes;
-		onSettingsChanged: (
-			settings: SheetTypes[keyof SheetTypes]['_settingType']
-		) => void;
-	}) => {
-		return (
-			<Show
-				when={
-					'getSettingsField' in TypeData[props.type] &&
-					TypeData[props.type].getSettingsField !== undefined
-				}
-			>
-				<Dynamic
-					component={TypeData[props.type].getSettingsField}
-					settingData={undefined}
-					onSettingsChanged={updateSettings}
-				/>
-			</Show>
-		);
-	};
-
 	const createColumn = () => {
 		if (
 			'getSettingsField' in TypeData[type()] === false ||

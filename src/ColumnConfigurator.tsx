@@ -7,13 +7,14 @@ export function ColumnConfigurator(props: {
 	btnClass: string;
 	column: Column;
 	onSettingChanged: (newSettings: SettingsData) => void;
+	onColumnDeleted: (columnUUID: string) => void;
 }) {
 	const [dialogRef, setDialogRef] = createSignal<HTMLDialogElement>();
 
 	const [settings, setSettings] = createSignal(props.column.settingData);
 
 	return (
-		<div class='flex'>
+		<div class="flex">
 			<button
 				class={props.btnClass}
 				onClick={() => dialogRef()?.showModal()}
@@ -42,8 +43,14 @@ export function ColumnConfigurator(props: {
 						/>
 					</div>
 					<div class="modal-action">
-						<form method="dialog">
-							<div class="flex gap-2">
+						<form method="dialog" class="flex-1">
+							<div class="flex gap-2 min-w-full justify-between">
+								<button
+									class="btn btn-error"
+									onClick={() => {props.onColumnDeleted(props.column.uuid)}}
+								>
+									delete Column
+								</button>
 								<button
 									class="btn btn-primary"
 									onClick={() =>

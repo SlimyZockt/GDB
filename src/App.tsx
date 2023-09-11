@@ -39,8 +39,6 @@ function hashCode(str: string): number {
 function createSaveData(currentSheet: Sheet): SaveData {
 	let currentSheetUUID = currentSheet.uuid;
 
-	console.log(currentSheet);
-	
 	const ID = sheets.findIndex((s) => s.uuid === currentSheetUUID);
 
 	if (ID === -1) {
@@ -211,8 +209,6 @@ function App() {
 
 	const keyPressed = async (event: { keyCode: string; ctrl: boolean }) => {
 		if (event.keyCode === 'KeyS' && event.ctrl === true) {
-			console.log(sheetPath());
-
 			if (sheetPath() != '') {
 				console.log('saved');
 

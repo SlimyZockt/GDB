@@ -16,6 +16,7 @@ import {
 import './InputStyle.css';
 import { Table, extendDataOnColumnChange } from '../Table';
 import { set, z } from 'zod';
+import { dialog } from '@tauri-apps/api';
 
 export const [sheets, setSheets] = createStore<Sheet[]>([]);
 export const [stuff, setStuff] = createSignal(false);
@@ -395,27 +396,67 @@ export const TypeData: SheetTypes = {
 	},
 	FilePath: {
 		getInputField: (props) => {
-			// TODO: ADD Setting to Save Data
 
-			const onFileChange = async (fileList: FileList | null) => {
-				// TODO: ADD Native File Path
-				let File = fileList?.item(0);
-				let url = '';
-				if (File !== undefined && File !== null) {
-					url = URL.createObjectURL(File);
+			const openFile = async (isTauri: boolean) => {
+				if (!isTauri) {
+					var input = document.createElement('input');
+					input.type = 'file';
+					if (props.settings !== undefined) {
+						input.accept = props.settings.Filenames.join(',');
+					}
+
+					input.oninput = (e) => {
+						// getting a hold of the file reference
+						const EVENT = e as InputEvent & {
+							currentTarget: HTMLInputElement;
+							target: HTMLInputElement;
+						};
+						var files = EVENT.currentTarget.files;
+
+						if (files === null) return;
+						var file = files.item(0);
+						let url = '';
+						if (file !== undefined && file !== null) {
+							url = URL.createObjectURL(file);
+						}
+						props.onValueChanged(url);
+					};
+					input.click();
 				}
 
-				props.onValueChanged(url);
+				if (isTauri) {
+					let extensions: string[] = [];
+
+					if (props.settings !== undefined) {
+						extensions = props.settings?.Filenames.map((f) =>
+							f.startsWith('.') ? f.slice(1) : f
+						);
+					}
+
+					const filePath = await dialog.open({
+						multiple: false,
+						filters: [
+							{
+								name: 'GearDB Files',
+								extensions: extensions,
+							},
+						],
+					});
+
+					if (typeof filePath !== 'string') return;
+
+					props.onValueChanged(filePath);
+				}
 			};
 
 			return (
-				<input
-					type="file"
+				<button
 					class="file-input file-input-bordered w-full min-w-full"
-					onInput={(e) => onFileChange(e.currentTarget.files)}
+					onClick={(_) => openFile(window.__TAURI__ !== undefined)}
 					value={props.value}
-					accept={props.settings?.Filenames?.join(',')}
-				/>
+				> 
+					{props.value === "" ? "select file" : `"...${props.value.slice(props.value.lastIndexOf("\\"))}"`}
+				</button>
 			);
 		},
 		getSettingsField(props) {
